@@ -74,12 +74,12 @@
 ================================ */
 .studio-layout {
   display: grid;
-  grid-template-columns: 360px 1fr 340px;
+  grid-template-columns: 330px 1fr;
   gap: 1.5rem;
-  margin: 2rem 0 3rem 0;
+  margin: 1.5rem 0 3rem 0;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 980px) {
   .studio-layout {
     grid-template-columns: 1fr;
   }

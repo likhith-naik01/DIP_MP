@@ -117,15 +117,22 @@
           </div>
         </section>
 
-        <!-- Center Workbench: Unified Visualizer with Side-by-Side & Split Slider -->
+        <!-- Main Workbench: Spacious Thermal Viewport + Bottom Metrics & Chart -->
         <section class="studio-panel">
-          <div class="card" style="padding: 1.25rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-              <h2 class="card-title" style="margin-bottom: 0;">Interactive Thermal Viewport</h2>
-              <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <!-- Card 1: Interactive Thermal Viewport -->
+          <div class="card" style="padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <h2 class="card-title" style="margin-bottom: 0.2rem;">Thermal Restoration Viewport</h2>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                  Compare degraded thermal sensor inputs against unsupervised DIP U-Net reconstructions
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                 <div style="display: inline-flex; border: 1px solid var(--border-card); border-radius: var(--radius-sm); overflow: hidden;">
-                  <button type="button" class="btn btn-sm btn-secondary active" id="btn-view-sbs" style="border-radius: 0; padding: 0.3rem 0.65rem; font-size: 0.75rem;">Side-by-Side</button>
-                  <button type="button" class="btn btn-sm btn-secondary" id="btn-view-slider" style="border-radius: 0; padding: 0.3rem 0.65rem; font-size: 0.75rem;">Split Slider</button>
+                  <button type="button" class="btn btn-sm btn-secondary active" id="btn-view-sbs" style="border-radius: 0; padding: 0.35rem 0.75rem; font-size: 0.75rem;">2-Image View</button>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-view-tri" style="border-radius: 0; padding: 0.35rem 0.75rem; font-size: 0.75rem;">3-Image Pipeline</button>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-view-slider" style="border-radius: 0; padding: 0.35rem 0.75rem; font-size: 0.75rem;">Split Slider</button>
                 </div>
                 <button class="btn btn-secondary btn-sm" id="btn-download-restored" disabled>
                   Download PNG
@@ -139,20 +146,36 @@
               <canvas id="mask-canvas"></canvas>
             </div>
 
-            <!-- Viewport 1: Side-by-Side Mode (Default) -->
-            <div id="view-sidebyside" class="sidebyside-container" style="display: grid; margin-bottom: 1.25rem;">
+            <!-- Viewport 1: Spacious 2-Image View (Default) -->
+            <div id="view-sidebyside" class="sidebyside-container" style="display: grid; margin-bottom: 1.5rem;">
               <div class="sidebyside-box">
                 <div class="sidebyside-header header-degraded">Degraded Input (Noise / Scratches)</div>
                 <img id="sbs-before-img" class="sidebyside-img" src="" alt="Degraded Thermal Input">
               </div>
               <div class="sidebyside-box">
-                <div class="sidebyside-header header-restored">DIP Restored Output</div>
+                <div class="sidebyside-header header-restored">DIP Restored Output (Clean Recovered)</div>
                 <img id="sbs-after-img" class="sidebyside-img" src="" alt="Restored DIP Output">
               </div>
             </div>
 
-            <!-- Viewport 2: Split Slider Mode -->
-            <div id="view-slider" style="display: none; margin-bottom: 1.25rem;">
+            <!-- Viewport 2: 3-Image Pipeline View (Original -> Degraded -> Restored) -->
+            <div id="view-tri" class="tri-image-container" style="display: none; margin-bottom: 1.5rem;">
+              <div class="sidebyside-box">
+                <div class="sidebyside-header header-original">1. Original Reference</div>
+                <img id="tri-orig-img" class="sidebyside-img" src="" alt="Original Reference">
+              </div>
+              <div class="sidebyside-box">
+                <div class="sidebyside-header header-degraded">2. Degraded Thermal Input</div>
+                <img id="tri-deg-img" class="sidebyside-img" src="" alt="Degraded Input">
+              </div>
+              <div class="sidebyside-box">
+                <div class="sidebyside-header header-restored">3. DIP Restored Output</div>
+                <img id="tri-rest-img" class="sidebyside-img" src="" alt="Restored Output">
+              </div>
+            </div>
+
+            <!-- Viewport 3: Draggable Split Slider View -->
+            <div id="view-slider" style="display: none; margin-bottom: 1.5rem;">
               <div class="slider-container" id="before-after-slider">
                 <div class="slider-badge badge-left">Degraded Input</div>
                 <div class="slider-badge badge-right">DIP Restored</div>
@@ -164,7 +187,7 @@
               </div>
             </div>
 
-            <!-- Progress Meter -->
+            <!-- Optimization Progress Meter -->
             <div class="progress-container">
               <div class="progress-header">
                 <span>Optimization Progress: <strong id="progress-text">0%</strong></span>
@@ -175,40 +198,41 @@
               </div>
             </div>
           </div>
-        </section>
 
-        <!-- Right Panel: Quantitative Metrics & Convergence Loss -->
-        <section class="studio-panel">
-          <div class="card">
-            <h2 class="card-title">Restoration Metrics</h2>
-            <div class="metrics-grid">
-              <div class="stat-card">
-                <div class="stat-value" id="stat-psnr">-- dB</div>
-                <div class="stat-label">Peak SNR</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value" id="stat-ssim">--</div>
-                <div class="stat-label">SSIM Index</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value" id="stat-loss">--</div>
-                <div class="stat-label">Final Loss</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value" id="stat-time">-- s</div>
-                <div class="stat-label">Elapsed Time</div>
+          <!-- Bottom Row: Quantitative Metrics & Convergence Loss Curve (Below Images) -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+            <!-- Metrics Card -->
+            <div class="card" style="margin: 0;">
+              <h2 class="card-title">Restoration Metrics</h2>
+              <div class="metrics-grid">
+                <div class="stat-card">
+                  <div class="stat-value" id="stat-psnr">-- dB</div>
+                  <div class="stat-label">Peak SNR</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="stat-ssim">--</div>
+                  <div class="stat-label">SSIM Index</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="stat-loss">--</div>
+                  <div class="stat-label">Final Loss</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="stat-time">-- s</div>
+                  <div class="stat-label">Elapsed Time</div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Convergence Chart -->
-          <div class="card" style="flex: 1; min-height: 300px; display: flex; flex-direction: column;">
-            <h2 class="card-title">Convergence Loss Curve</h2>
-            <div style="flex: 1; position: relative; min-height: 220px;">
-              <canvas id="loss-chart-canvas"></canvas>
-            </div>
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
-              Logarithmic scale: Real-time masked MSE loss tracking
+            <!-- Convergence Loss Curve Card -->
+            <div class="card" style="margin: 0; display: flex; flex-direction: column;">
+              <h2 class="card-title" style="margin-bottom: 0.5rem;">Convergence Loss Curve</h2>
+              <div style="flex: 1; position: relative; min-height: 190px;">
+                <canvas id="loss-chart-canvas"></canvas>
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.4rem; text-align: center;">
+                Logarithmic scale: Real-time masked MSE loss tracking
+              </div>
             </div>
           </div>
         </section>

@@ -44,11 +44,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const sliderBeforeImg = document.getElementById("slider-before-img");
   const sliderAfterImg = document.getElementById("slider-after-img");
   const btnViewSbs = document.getElementById("btn-view-sbs");
+  const btnViewTri = document.getElementById("btn-view-tri");
   const btnViewSlider = document.getElementById("btn-view-slider");
   const viewSideBySide = document.getElementById("view-sidebyside");
+  const viewTri = document.getElementById("view-tri");
   const viewSlider = document.getElementById("view-slider");
   const sbsBeforeImg = document.getElementById("sbs-before-img");
   const sbsAfterImg = document.getElementById("sbs-after-img");
+  const triOrigImg = document.getElementById("tri-orig-img");
+  const triDegImg = document.getElementById("tri-deg-img");
+  const triRestImg = document.getElementById("tri-rest-img");
   const colormapSelect = document.getElementById("colormap-select");
   const lossCanvas = document.getElementById("loss-chart-canvas");
 
@@ -61,29 +66,49 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnViewSbs && btnViewSlider) {
     btnViewSbs.addEventListener("click", () => {
       btnViewSbs.classList.add("active");
+      if (btnViewTri) btnViewTri.classList.remove("active");
       btnViewSlider.classList.remove("active");
       if (viewSideBySide) viewSideBySide.style.display = "grid";
+      if (viewTri) viewTri.style.display = "none";
       if (viewSlider) viewSlider.style.display = "none";
     });
+
+    if (btnViewTri) {
+      btnViewTri.addEventListener("click", () => {
+        btnViewTri.classList.add("active");
+        btnViewSbs.classList.remove("active");
+        btnViewSlider.classList.remove("active");
+        if (viewSideBySide) viewSideBySide.style.display = "none";
+        if (viewTri) viewTri.style.display = "grid";
+        if (viewSlider) viewSlider.style.display = "none";
+      });
+    }
 
     btnViewSlider.addEventListener("click", () => {
       btnViewSlider.classList.add("active");
       btnViewSbs.classList.remove("active");
+      if (btnViewTri) btnViewTri.classList.remove("active");
       if (viewSideBySide) viewSideBySide.style.display = "none";
+      if (viewTri) viewTri.style.display = "none";
       if (viewSlider) viewSlider.style.display = "block";
       slider.setSliderPosition(50);
     });
   }
 
-  // Helper to update both views simultaneously
-  function updateDisplayedImages(degradedUrl, restoredUrl) {
+  // Helper to update all views simultaneously
+  function updateDisplayedImages(originalUrl, degradedUrl, restoredUrl) {
+    if (originalUrl) {
+      if (triOrigImg) triOrigImg.src = originalUrl;
+    }
     if (degradedUrl) {
       if (sliderBeforeImg) sliderBeforeImg.src = degradedUrl;
       if (sbsBeforeImg) sbsBeforeImg.src = degradedUrl;
+      if (triDegImg) triDegImg.src = degradedUrl;
     }
     if (restoredUrl) {
       if (sliderAfterImg) sliderAfterImg.src = restoredUrl;
       if (sbsAfterImg) sbsAfterImg.src = restoredUrl;
+      if (triRestImg) triRestImg.src = restoredUrl;
     }
   }
 
@@ -92,32 +117,59 @@ document.addEventListener("DOMContentLoaded", () => {
   const slider = new BeforeAfterSlider(sliderContainer);
   const chart = new LossCurveChart(lossCanvas);
 
-  // 1. Backend Connectivity Check
-  async function checkApiConnection() {
-    apiStatusDot.className = "status-dot busy";
-    apiStatusText.textContent = "Connecting...";
-    const health = await ApiClient.checkHealth();
-    if (health.status === "ok") {
-      apiStatusDot.className = "status-dot online";
-      if (health.cuda_available) {
-        apiStatusText.textContent = `CUDA Active (${health.gpu_name})`;
-        apiStatusDot.style.background = "var(--accent-cyan)";
-        apiStatusDot.style.boxShadow = "0 0 10px var(--accent-cyan)";
+  // 1. Backend Connectivity Check with Silent Heartbeat and Resilience
+  let consecutiveHealthFailures = 0;
+  let isCheckingHealth = false;
+
+  async function checkApiConnection(forceShowConnecting = false) {
+    if (isCheckingHealth) return;
+    if (activeJobId) return; // Don't interrupt active restoration polling
+
+    isCheckingHealth = true;
+    if (forceShowConnecting) {
+      apiStatusDot.className = "status-dot busy";
+      apiStatusText.textContent = "Connecting...";
+      apiStatusDot.style.background = "#ffb300";
+    }
+
+    try {
+      const health = await ApiClient.checkHealth();
+      if (health.status === "ok") {
+        consecutiveHealthFailures = 0;
+        apiStatusDot.className = "status-dot online";
+        if (health.cuda_available) {
+          apiStatusText.textContent = `CUDA Active (${health.gpu_name})`;
+          apiStatusDot.style.background = "var(--accent-cyan)";
+          apiStatusDot.style.boxShadow = "0 0 10px var(--accent-cyan)";
+        } else {
+          apiStatusText.textContent = `CPU Mode (Connect Colab for CUDA GPU)`;
+          apiStatusDot.style.background = "#ffb300";
+          apiStatusDot.style.boxShadow = "0 0 8px #ffb300";
+        }
       } else {
-        apiStatusText.textContent = `CPU Mode (Connect Colab for CUDA GPU)`;
-        apiStatusDot.style.background = "#ffb300";
-        apiStatusDot.style.boxShadow = "0 0 8px #ffb300";
+        consecutiveHealthFailures++;
+        if (consecutiveHealthFailures >= 2) {
+          apiStatusDot.className = "status-dot offline";
+          apiStatusText.textContent = "Offline / Disconnected";
+          apiStatusDot.style.background = "#ff1744";
+          apiStatusDot.style.boxShadow = "none";
+        }
       }
-    } else {
-      apiStatusDot.className = "status-dot offline";
-      apiStatusText.textContent = "Offline / Disconnected";
-      apiStatusDot.style.background = "#ff1744";
-      apiStatusDot.style.boxShadow = "none";
+    } catch (e) {
+      consecutiveHealthFailures++;
+      if (consecutiveHealthFailures >= 2) {
+        apiStatusDot.className = "status-dot offline";
+        apiStatusText.textContent = "Offline / Disconnected";
+        apiStatusDot.style.background = "#ff1744";
+        apiStatusDot.style.boxShadow = "none";
+      }
+    } finally {
+      isCheckingHealth = false;
     }
   }
 
-  checkApiConnection();
-  setInterval(checkApiConnection, 15000);
+  checkApiConnection(true);
+  setInterval(() => checkApiConnection(false), 30000);
 
   // API Modal Settings
   apiSettingsBtn.addEventListener("click", () => {
@@ -250,14 +302,24 @@ document.addEventListener("DOMContentLoaded", () => {
           chart.addDataPoint(statusData.current_iteration, statusData.current_loss);
         }
 
+        // Re-affirm online CUDA state during active polling
+        if (apiStatusDot.className !== "status-dot online") {
+          apiStatusDot.className = "status-dot online";
+          apiStatusText.textContent = "CUDA Active (Tesla T4)";
+          apiStatusDot.style.background = "var(--accent-cyan)";
+          apiStatusDot.style.boxShadow = "0 0 10px var(--accent-cyan)";
+        }
+
         // Live Degraded & Preview Sync
         if (statusData.degraded_image_base64) {
           if (sliderBeforeImg) sliderBeforeImg.src = statusData.degraded_image_base64;
           if (sbsBeforeImg) sbsBeforeImg.src = statusData.degraded_image_base64;
+          if (triDegImg) triDegImg.src = statusData.degraded_image_base64;
         }
         if (statusData.preview_image_base64) {
           if (sliderAfterImg) sliderAfterImg.src = statusData.preview_image_base64;
           if (sbsAfterImg) sbsAfterImg.src = statusData.preview_image_base64;
+          if (triRestImg) triRestImg.src = statusData.preview_image_base64;
         }
 
         // Check completion or terminal states
@@ -283,13 +345,18 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast("Restoration Complete! Loading final results...", "success");
     try {
       const resData = await ApiClient.getJobResult(jobId);
+      if (resData.original_image_base64 && triOrigImg) {
+        triOrigImg.src = resData.original_image_base64;
+      }
       if (resData.degraded_image_base64) {
         if (sliderBeforeImg) sliderBeforeImg.src = resData.degraded_image_base64;
         if (sbsBeforeImg) sbsBeforeImg.src = resData.degraded_image_base64;
+        if (triDegImg) triDegImg.src = resData.degraded_image_base64;
       }
       if (resData.restored_image_base64) {
         if (sliderAfterImg) sliderAfterImg.src = resData.restored_image_base64;
         if (sbsAfterImg) sbsAfterImg.src = resData.restored_image_base64;
+        if (triRestImg) triRestImg.src = resData.restored_image_base64;
       }
 
       // Populate metrics

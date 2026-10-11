@@ -10,11 +10,15 @@ export class ApiClient {
 
   static async checkHealth() {
     const url = `${this.getBaseUrl()}/api/health`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
     try {
-      const resp = await fetch(url, { method: "GET" });
+      const resp = await fetch(url, { method: "GET", signal: controller.signal });
+      clearTimeout(timer);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       return await resp.json();
     } catch (err) {
+      clearTimeout(timer);
       return { status: "error", error: err.message };
     }
   }
