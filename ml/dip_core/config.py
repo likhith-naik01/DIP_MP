@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any, Tuple
 import torch
 
 
@@ -11,6 +11,10 @@ class RestorationTask(str, Enum):
     DENOISE = "denoise"
     INPAINT = "inpaint"
     DENOISE_AND_INPAINT = "denoise_and_inpaint"
+    DENOISING = "denoising"
+    INPAINTING = "inpainting"
+    SUPER_RESOLUTION = "super_resolution"
+    COMBINED = "combined"
 
 
 @dataclass
@@ -87,6 +91,26 @@ class DamageConfig:
     num_line_holes: int = 4                  # Number of scratch lines
     num_rect_holes: int = 2                  # Number of rectangular missing blocks
     seed: int = 42
+    # Flexible aliases
+    dead_pixel_ratio: Optional[float] = None
+    scratch_line_count: Optional[int] = None
+    scratch_line_thickness: Optional[int] = None
+    rect_hole_count: Optional[int] = None
+    rect_hole_size: Optional[Any] = None
+
+    def __post_init__(self):
+        if self.dead_pixel_ratio is not None:
+            self.dropout_ratio = self.dead_pixel_ratio
+        else:
+            self.dead_pixel_ratio = self.dropout_ratio
+        if self.scratch_line_count is not None:
+            self.num_line_holes = self.scratch_line_count
+        else:
+            self.scratch_line_count = self.num_line_holes
+        if self.rect_hole_count is not None:
+            self.num_rect_holes = self.rect_hole_count
+        else:
+            self.rect_hole_count = self.num_rect_holes
 
 
 def get_device(requested: Optional[str] = None) -> torch.device:

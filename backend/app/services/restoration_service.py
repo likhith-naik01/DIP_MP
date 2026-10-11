@@ -88,7 +88,10 @@ def execute_restoration_job(
                 preview_b64 = None
                 if (now - last_preview_time[0] >= 2.0 or step == total_iters) and preview_tensor is not None:
                     last_preview_time[0] = now
-                    prev_np = preview_tensor.detach().squeeze().cpu().numpy()
+                    if hasattr(preview_tensor, "detach"):
+                        prev_np = preview_tensor.detach().squeeze().cpu().numpy()
+                    else:
+                        prev_np = np.asarray(preview_tensor).squeeze()
                     preview_b64 = array_to_base64_png(prev_np, colormap=colormap_str)
                     
                 elapsed = now - start_time
