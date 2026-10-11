@@ -16,8 +16,11 @@ def composite_restored_image(
     Blend restored output with original valid pixels:
       composite = mask * degraded + (1 - mask) * restored
     where mask has 1.0 for valid pixels, 0.0 for damaged/missing pixels.
+    If all pixels in mask are valid (e.g. pure denoising/enhancement), returns restored array.
     """
     m = np.clip(mask, 0.0, 1.0)
+    if np.all(m >= 0.999):
+        return np.clip(restored, 0.0, 1.0).astype(np.float32)
     composite = (m * degraded) + ((1.0 - m) * restored)
     return np.clip(composite, 0.0, 1.0).astype(np.float32)
 

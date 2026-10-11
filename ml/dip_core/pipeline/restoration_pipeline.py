@@ -126,8 +126,18 @@ def run_restoration(
         mask_np = sim_mask
     else:
         degraded_img = raw_img.copy()
-        if auto_detect_mask:
-            mask_np, _ = detect_damage_mask(degraded_img)
+        if task == "auto" or auto_detect_mask:
+            det_mask, stats = detect_damage_mask(degraded_img)
+            if mask is not None:
+                mask_tensor_tmp = build_valid_mask(mask, target_shape=orig_shape, task="inpaint", device="cpu")
+                mask_np = mask_tensor_tmp.squeeze().numpy()
+                task = "inpaint"
+            elif stats.get("damaged_pixels", 0) > 0:
+                mask_np = det_mask
+                task = "inpaint"
+            else:
+                mask_np = np.ones(orig_shape, dtype=np.float32)
+                task = "denoise"
         elif mask is not None:
             # Build valid mask from user input
             mask_tensor_tmp = build_valid_mask(mask, target_shape=orig_shape, task=task, device="cpu")

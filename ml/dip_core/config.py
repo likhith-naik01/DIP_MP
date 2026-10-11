@@ -8,6 +8,7 @@ import torch
 
 class RestorationTask(str, Enum):
     """Supported thermal image restoration tasks."""
+    AUTO = "auto"
     DENOISE = "denoise"
     INPAINT = "inpaint"
     DENOISE_AND_INPAINT = "denoise_and_inpaint"

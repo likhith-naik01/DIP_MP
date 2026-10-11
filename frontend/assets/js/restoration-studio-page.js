@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const formColormap = document.getElementById("opt-colormap");
   const chkSimDamage = document.getElementById("chk-simulate-damage");
   const chkAutoMask = document.getElementById("chk-auto-mask");
+  const autoDetectDesc = document.getElementById("auto-detect-status-desc");
 
   const btnStartRestoration = document.getElementById("btn-start-restoration");
   const btnCancelRestoration = document.getElementById("btn-cancel-restoration");
@@ -99,6 +100,34 @@ document.addEventListener("DOMContentLoaded", () => {
     checkApiConnection();
   });
 
+  function updateAutoDetectStatus(imgElement) {
+    if (!autoDetectDesc) return;
+    try {
+      const c = document.createElement("canvas");
+      c.width = 128;
+      c.height = 128;
+      const ctx = c.getContext("2d");
+      ctx.drawImage(imgElement, 0, 0, 128, 128);
+      const data = ctx.getImageData(0, 0, 128, 128).data;
+      let darkCount = 0;
+      let satCount = 0;
+      const total = 128 * 128;
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        if (gray <= 3) darkCount++;
+        else if (gray >= 252) satCount++;
+      }
+      const damagePct = ((darkCount + satCount) / total) * 100;
+      if (damagePct > 0.05) {
+        autoDetectDesc.textContent = `Auto-Detected: Sensor damage found (~${Math.round(damagePct * 10) / 10}% corrupted pixels). Inpainting and restoration ready.`;
+      } else {
+        autoDetectDesc.textContent = "Auto-Detected: Sensor array intact. Thermal sensor denoising and enhancement ready.";
+      }
+    } catch (e) {
+      autoDetectDesc.textContent = "Auto-Detection Active: Ready to optimize thermal sensor defects and noise.";
+    }
+  }
+
   // 2. Image Loading Handler
   new ImageUploadHandler({
     dropzone,
@@ -114,6 +143,8 @@ document.addEventListener("DOMContentLoaded", () => {
       maskEditor.resize(img.naturalWidth || 512, img.naturalHeight || 512);
       dropzone.querySelector(".dropzone-prompt").style.display = "none";
       btnStartRestoration.disabled = false;
+      btnStartRestoration.textContent = "Optimize";
+      updateAutoDetectStatus(img);
       showToast("Thermal image loaded successfully!", "info");
     }
   });
@@ -134,6 +165,12 @@ document.addEventListener("DOMContentLoaded", () => {
         maskEditor.resize(512, 512);
         dropzone.querySelector(".dropzone-prompt").style.display = "none";
         btnStartRestoration.disabled = false;
+        btnStartRestoration.textContent = "Optimize";
+        
+        const tempImg = new Image();
+        tempImg.onload = () => updateAutoDetectStatus(tempImg);
+        tempImg.src = dataUrl;
+        
         showToast(`Loaded sample: ${btn.textContent}`, "info");
       } catch (err) {
         showToast("Failed to load sample image.", "error");
@@ -176,6 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       btnStartRestoration.disabled = true;
+      btnStartRestoration.textContent = "Optimizing...";
       btnCancelRestoration.disabled = false;
       btnDownloadRestored.disabled = true;
       chart.reset();
@@ -183,24 +221,25 @@ document.addEventListener("DOMContentLoaded", () => {
       const maskBlob = await maskEditor.getMaskBlob();
 
       const options = {
-        task: formTask.value,
-        model: formModel.value,
-        iterations: Number(formIterations.value),
-        learning_rate: Number(formLr.value),
-        colormap: formColormap.value,
-        simulate_damage: chkSimDamage.checked,
-        auto_detect_mask: chkAutoMask.checked,
+        task: formTask ? formTask.value : "auto",
+        model: formModel ? formModel.value : "unet",
+        iterations: formIterations ? Number(formIterations.value) : 1500,
+        learning_rate: formLr ? Number(formLr.value) : 0.01,
+        colormap: formColormap ? formColormap.value : "ironbow",
+        simulate_damage: chkSimDamage ? chkSimDamage.checked : false,
+        auto_detect_mask: chkAutoMask ? chkAutoMask.checked : true,
       };
 
-      showToast("Submitting restoration job to GPU...", "info");
+      showToast("Submitting optimization job to GPU...", "info");
       const jobRes = await ApiClient.createRestorationJob(currentFileBlob, maskBlob, options);
       activeJobId = jobRes.job_id;
-      showToast(`Job ${activeJobId} started!`, "success");
+      showToast(`Optimization job ${activeJobId} started!`, "success");
 
       startPollingJob(activeJobId);
     } catch (err) {
       showToast(err.message, "error");
       btnStartRestoration.disabled = false;
+      btnStartRestoration.textContent = "Optimize";
       btnCancelRestoration.disabled = true;
     }
   });
@@ -262,7 +301,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Populate metrics
       const metrics = resData.metrics || {};
-      statPsnr.textContent = formatMetric(metrics.psnr, 2) + " dB";
+      const psnrVal = metrics.psnr != null ? metrics.psnr : metrics.psnr_proxy;
+      statPsnr.textContent = psnrVal != null ? formatMetric(psnrVal, 2) + " dB" : "-- dB";
       statSsim.textContent = formatMetric(metrics.ssim, 4);
       statTime.textContent = formatSeconds(resData.runtime_seconds);
 
@@ -293,6 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function resetJobButtons() {
     btnStartRestoration.disabled = false;
+    btnStartRestoration.textContent = "Optimize";
     btnCancelRestoration.disabled = true;
   }
 });

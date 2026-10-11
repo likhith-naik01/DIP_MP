@@ -9,7 +9,7 @@ import torch
 
 from dip_core.config import DipTrainingConfig, RestorationTask, DamageConfig
 from dip_core.pipeline.restoration_pipeline import run_restoration
-from dip_core.pipeline.mask_detection import auto_detect_damage_mask
+from dip_core.pipeline.mask_detection import auto_detect_damage_mask, detect_damage_mask
 from dip_core.pipeline.damage_simulation import simulate_thermal_damage
 from backend.app.services.job_store import job_store
 from backend.app.services.image_io import array_to_base64_png
@@ -36,14 +36,14 @@ def execute_restoration_job(
             return
             
         try:
-            task_str = options.get("task", "inpainting")
+            task_str = options.get("task", "auto")
             model_str = options.get("model", "unet")
             total_iters = int(options.get("iterations", 1500))
             lr = float(options.get("learning_rate", 0.01))
             reg_noise_std = float(options.get("reg_noise_std", 0.03))
             colormap_str = options.get("colormap", "ironbow")
             simulate_damage_flag = bool(options.get("simulate_damage", False))
-            auto_detect_mask_flag = bool(options.get("auto_detect_mask", False))
+            auto_detect_mask_flag = bool(options.get("auto_detect_mask", True))
             early_stopping_flag = bool(options.get("early_stopping", True))
             patience = int(options.get("patience", 250))
             
@@ -61,10 +61,19 @@ def execute_restoration_job(
                 degraded_arr, sim_mask = simulate_thermal_damage(ground_truth_arr, dmg_cfg)
                 if mask_arr is None:
                     mask_arr = sim_mask
-            elif auto_detect_mask_flag and mask_arr is None:
-                # Invert damage detection: auto_detect returns 1 for damage, so valid = 1 - damage
-                dmg_mask = auto_detect_damage_mask(degraded_arr)
-                mask_arr = 1.0 - dmg_mask
+                if task_str == "auto":
+                    task_str = "inpaint"
+            elif (auto_detect_mask_flag or task_str == "auto") and mask_arr is None:
+                # Automatic defect and dead-pixel detection
+                valid_mask, stats = detect_damage_mask(degraded_arr)
+                if stats.get("damaged_pixels", 0) > 0:
+                    mask_arr = valid_mask
+                    if task_str == "auto":
+                        task_str = "inpaint"
+                else:
+                    mask_arr = np.ones_like(degraded_arr, dtype=np.float32)
+                    if task_str == "auto":
+                        task_str = "denoise"
                 
             if mask_arr is None:
                 mask_arr = np.ones_like(degraded_arr, dtype=np.float32)
@@ -121,7 +130,16 @@ def execute_restoration_job(
             start_time = time.time()
             
             # Map task string to enum
-            task_enum = RestorationTask(task_str)
+            if task_str in ("inpainting", "inpaint"):
+                task_enum = RestorationTask.INPAINT
+            elif task_str in ("denoising", "denoise"):
+                task_enum = RestorationTask.DENOISE
+            elif task_str in ("super_resolution", "sr"):
+                task_enum = RestorationTask.SUPER_RESOLUTION
+            elif task_str in ("combined", "denoise_and_inpaint"):
+                task_enum = RestorationTask.DENOISE_AND_INPAINT
+            else:
+                task_enum = RestorationTask.AUTO
             
             output = run_restoration(
                 image_input=degraded_arr,
