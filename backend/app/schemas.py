@@ -54,6 +54,7 @@ class JobStatusResponse(BaseModel):
     total_iterations: int = 0
     current_loss: Optional[float] = None
     preview_image_base64: Optional[str] = None
+    degraded_image_base64: Optional[str] = None
     eta_seconds: Optional[float] = None
     error_message: Optional[str] = None
 

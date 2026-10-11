@@ -80,6 +80,17 @@
               </div>
             </div>
 
+            <!-- Colormap Palette Selection -->
+            <div style="margin-top: 1.25rem;">
+              <label class="form-label" for="colormap-select" style="font-size: 0.8rem;">Display Palette</label>
+              <select id="colormap-select" class="form-control" style="font-size: 0.85rem; padding: 0.5rem 0.75rem;">
+                <option value="grayscale" selected>Grayscale (Monochrome Thermal)</option>
+                <option value="ironbow">Ironbow (Standard FLIR Thermal)</option>
+                <option value="inferno">Inferno</option>
+                <option value="viridis">Viridis</option>
+              </select>
+            </div>
+
             <!-- Single Optimize Action Button -->
             <div style="margin-top: 1.25rem;">
               <button type="button" class="btn btn-primary" id="btn-start-restoration" style="width: 100%; font-size: 1.1rem; padding: 0.95rem 1rem; font-weight: 700; letter-spacing: 0.02em;" disabled>
@@ -103,47 +114,61 @@
           </div>
         </section>
 
-        <!-- Center Workbench: Visualizer & Before/After Slider -->
+        <!-- Center Workbench: Unified Visualizer with Side-by-Side & Split Slider -->
         <section class="studio-panel">
           <div class="card" style="padding: 1.25rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
               <h2 class="card-title" style="margin-bottom: 0;">Interactive Thermal Viewport</h2>
-              <button class="btn btn-secondary btn-sm" id="btn-download-restored" disabled>
-                Download PNG
-              </button>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <div style="display: inline-flex; border: 1px solid var(--border-card); border-radius: var(--radius-sm); overflow: hidden;">
+                  <button type="button" class="btn btn-sm btn-secondary active" id="btn-view-sbs" style="border-radius: 0; padding: 0.3rem 0.65rem; font-size: 0.75rem;">Side-by-Side</button>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-view-slider" style="border-radius: 0; padding: 0.3rem 0.65rem; font-size: 0.75rem;">Split Slider</button>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-download-restored" disabled>
+                  Download PNG
+                </button>
+              </div>
             </div>
 
-            <!-- Dual-Layer Canvas for Drawing Mask over Image -->
-            <div class="canvas-wrapper">
-              <img id="preview-source-img" src="" alt="Thermal Source" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; object-fit: contain;">
-              <canvas id="mask-canvas" class="drawing-canvas"></canvas>
+            <!-- Hidden elements for script backwards compatibility -->
+            <div style="display: none;">
+              <img id="preview-source-img" src="" alt="Thermal Source">
+              <canvas id="mask-canvas"></canvas>
+            </div>
+
+            <!-- Viewport 1: Side-by-Side Mode (Default) -->
+            <div id="view-sidebyside" class="sidebyside-container" style="display: grid; margin-bottom: 1.25rem;">
+              <div class="sidebyside-box">
+                <div class="sidebyside-header header-degraded">Degraded Input (Noise / Scratches)</div>
+                <img id="sbs-before-img" class="sidebyside-img" src="" alt="Degraded Thermal Input">
+              </div>
+              <div class="sidebyside-box">
+                <div class="sidebyside-header header-restored">DIP Restored Output</div>
+                <img id="sbs-after-img" class="sidebyside-img" src="" alt="Restored DIP Output">
+              </div>
+            </div>
+
+            <!-- Viewport 2: Split Slider Mode -->
+            <div id="view-slider" style="display: none; margin-bottom: 1.25rem;">
+              <div class="slider-container" id="before-after-slider">
+                <div class="slider-badge badge-left">Degraded Input</div>
+                <div class="slider-badge badge-right">DIP Restored</div>
+                <img id="slider-before-img" class="slider-img slider-img-before" src="" alt="Degraded Thermal">
+                <img id="slider-after-img" class="slider-img slider-img-after" src="" alt="Restored Thermal">
+                <div class="slider-handle">
+                  <div class="slider-button"></div>
+                </div>
+              </div>
             </div>
 
             <!-- Progress Meter -->
             <div class="progress-container">
               <div class="progress-header">
                 <span>Optimization Progress: <strong id="progress-text">0%</strong></span>
-                <span>Iteration: <strong id="iter-counter">0 / 1500</strong> • ETA: <strong id="eta-text">--</strong></span>
+                <span>Iteration: <strong id="iter-counter">0 / 250</strong> • ETA: <strong id="eta-text">--</strong></span>
               </div>
               <div class="progress-track">
                 <div class="progress-fill" id="progress-bar"></div>
-              </div>
-            </div>
-
-            <!-- Before / After Slider Comparison -->
-            <div style="margin-top: 1.5rem;">
-              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem;">
-                <span>Degraded Thermal Input</span>
-                <span>DIP U-Net Restored</span>
-              </div>
-              <div class="slider-container" id="before-after-slider">
-                <img id="slider-before-img" class="slider-img" src="" alt="Degraded Thermal">
-                <div class="slider-overlay">
-                  <img id="slider-after-img" class="slider-img" src="" alt="Restored Thermal">
-                </div>
-                <div class="slider-handle">
-                  <div class="slider-button"></div>
-                </div>
               </div>
             </div>
           </div>

@@ -86,6 +86,7 @@ def get_job_status(job_id: str):
         total_iterations=job["total_iterations"],
         current_loss=job["current_loss"],
         preview_image_base64=job["preview_image_base64"],
+        degraded_image_base64=job.get("degraded_image_base64"),
         eta_seconds=job["eta_seconds"],
         error_message=job["error_message"]
     )

@@ -206,7 +206,7 @@
   margin-top: 0.2rem;
 }
 
-/* Before / After Slider */
+/* Before / After Split Slider & Side-by-Side View */
 .slider-container {
   position: relative;
   width: 100%;
@@ -228,26 +228,29 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
 }
 
-.slider-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 50%;
-  overflow: hidden;
+.slider-img-before {
+  z-index: 1;
+}
+
+.slider-img-after {
+  z-index: 2;
+  clip-path: inset(0 0 0 var(--slider-split, 50%));
 }
 
 .slider-handle {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 50%;
+  left: var(--slider-split, 50%);
   width: 2px;
   background: var(--accent-cyan);
   box-shadow: 0 0 10px var(--accent-cyan);
   cursor: ew-resize;
+  z-index: 10;
+  transform: translateX(-50%);
 }
 
 .slider-button {
@@ -263,8 +266,82 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+.slider-badge {
+  position: absolute;
+  top: 10px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(8px);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.badge-left {
+  left: 10px;
+  background: rgba(255, 23, 68, 0.25);
+  border: 1px solid rgba(255, 23, 68, 0.6);
+  color: #ff5252;
+}
+
+.badge-right {
+  right: 10px;
+  background: rgba(0, 229, 255, 0.25);
+  border: 1px solid rgba(0, 229, 255, 0.6);
   color: var(--accent-cyan);
-  font-size: 12px;
+}
+
+/* Side-by-Side View */
+.sidebyside-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.sidebyside-box {
+  background: #000;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebyside-header {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.sidebyside-header.header-degraded {
+  background: rgba(255, 23, 68, 0.15);
+  color: #ff5252;
+  border-bottom: 1px solid rgba(255, 23, 68, 0.3);
+}
+
+.sidebyside-header.header-restored {
+  background: rgba(0, 229, 255, 0.15);
+  color: var(--accent-cyan);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+}
+
+.sidebyside-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  display: block;
 }
 
 /* Modal */

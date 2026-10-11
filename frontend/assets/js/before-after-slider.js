@@ -5,7 +5,7 @@
 export class BeforeAfterSlider {
   constructor(containerElement) {
     this.container = containerElement;
-    this.overlay = containerElement.querySelector(".slider-overlay");
+    this.afterImg = containerElement.querySelector(".slider-img-after");
     this.handle = containerElement.querySelector(".slider-handle");
     this.isDragging = false;
 
@@ -54,8 +54,9 @@ export class BeforeAfterSlider {
 
   setSliderPosition(percent) {
     const clamped = Math.max(0, Math.min(percent, 100));
-    if (this.overlay) {
-      this.overlay.style.width = `${clamped}%`;
+    this.container.style.setProperty("--slider-split", `${clamped}%`);
+    if (this.afterImg) {
+      this.afterImg.style.clipPath = `inset(0 0 0 ${clamped}%)`;
     }
     if (this.handle) {
       this.handle.style.left = `${clamped}%`;

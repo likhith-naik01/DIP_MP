@@ -43,12 +43,49 @@ document.addEventListener("DOMContentLoaded", () => {
   const sliderContainer = document.getElementById("before-after-slider");
   const sliderBeforeImg = document.getElementById("slider-before-img");
   const sliderAfterImg = document.getElementById("slider-after-img");
+  const btnViewSbs = document.getElementById("btn-view-sbs");
+  const btnViewSlider = document.getElementById("btn-view-slider");
+  const viewSideBySide = document.getElementById("view-sidebyside");
+  const viewSlider = document.getElementById("view-slider");
+  const sbsBeforeImg = document.getElementById("sbs-before-img");
+  const sbsAfterImg = document.getElementById("sbs-after-img");
+  const colormapSelect = document.getElementById("colormap-select");
   const lossCanvas = document.getElementById("loss-chart-canvas");
 
   // State
   let currentFileBlob = null;
   let activeJobId = null;
   let pollInterval = null;
+
+  // View Switcher Handlers
+  if (btnViewSbs && btnViewSlider) {
+    btnViewSbs.addEventListener("click", () => {
+      btnViewSbs.classList.add("active");
+      btnViewSlider.classList.remove("active");
+      if (viewSideBySide) viewSideBySide.style.display = "grid";
+      if (viewSlider) viewSlider.style.display = "none";
+    });
+
+    btnViewSlider.addEventListener("click", () => {
+      btnViewSlider.classList.add("active");
+      btnViewSbs.classList.remove("active");
+      if (viewSideBySide) viewSideBySide.style.display = "none";
+      if (viewSlider) viewSlider.style.display = "block";
+      slider.setSliderPosition(50);
+    });
+  }
+
+  // Helper to update both views simultaneously
+  function updateDisplayedImages(degradedUrl, restoredUrl) {
+    if (degradedUrl) {
+      if (sliderBeforeImg) sliderBeforeImg.src = degradedUrl;
+      if (sbsBeforeImg) sbsBeforeImg.src = degradedUrl;
+    }
+    if (restoredUrl) {
+      if (sliderAfterImg) sliderAfterImg.src = restoredUrl;
+      if (sbsAfterImg) sbsAfterImg.src = restoredUrl;
+    }
+  }
 
   // Initialize Subcomponents
   const maskEditor = new MaskDrawingEditor(maskCanvas, { brushSize: 16 });
@@ -130,10 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fileInput,
     onImageLoaded: ({ img, file, dataUrl }) => {
       currentFileBlob = file;
-      previewImg.src = dataUrl;
-      previewImg.style.display = "block";
-      sliderBeforeImg.src = dataUrl;
-      sliderAfterImg.src = dataUrl;
+      updateDisplayedImages(dataUrl, dataUrl);
 
       // Match canvas dimensions to image natural ratio
       maskEditor.resize(img.naturalWidth || 512, img.naturalHeight || 512);
@@ -160,12 +194,13 @@ document.addEventListener("DOMContentLoaded", () => {
       btnDownloadRestored.disabled = true;
       chart.reset();
 
+      const chosenColormap = colormapSelect ? colormapSelect.value : "grayscale";
       const options = {
         task: "auto",
         model: "unet",
         iterations: 1500,
         learning_rate: 0.01,
-        colormap: "ironbow",
+        colormap: chosenColormap,
         simulate_damage: true,
         auto_detect_mask: true,
       };
@@ -205,9 +240,14 @@ document.addEventListener("DOMContentLoaded", () => {
           chart.addDataPoint(statusData.current_iteration, statusData.current_loss);
         }
 
-        // Live Preview Thumbnail
+        // Live Degraded & Preview Sync
+        if (statusData.degraded_image_base64) {
+          if (sliderBeforeImg) sliderBeforeImg.src = statusData.degraded_image_base64;
+          if (sbsBeforeImg) sbsBeforeImg.src = statusData.degraded_image_base64;
+        }
         if (statusData.preview_image_base64) {
-          sliderAfterImg.src = statusData.preview_image_base64;
+          if (sliderAfterImg) sliderAfterImg.src = statusData.preview_image_base64;
+          if (sbsAfterImg) sbsAfterImg.src = statusData.preview_image_base64;
         }
 
         // Check completion or terminal states
@@ -234,10 +274,12 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const resData = await ApiClient.getJobResult(jobId);
       if (resData.degraded_image_base64) {
-        sliderBeforeImg.src = resData.degraded_image_base64;
+        if (sliderBeforeImg) sliderBeforeImg.src = resData.degraded_image_base64;
+        if (sbsBeforeImg) sbsBeforeImg.src = resData.degraded_image_base64;
       }
       if (resData.restored_image_base64) {
-        sliderAfterImg.src = resData.restored_image_base64;
+        if (sliderAfterImg) sliderAfterImg.src = resData.restored_image_base64;
+        if (sbsAfterImg) sbsAfterImg.src = resData.restored_image_base64;
       }
 
       // Populate metrics
