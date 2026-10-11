@@ -107,9 +107,12 @@
                 <strong style="color: var(--accent-cyan);">Google Colab GPU</strong>
                 <button type="button" class="btn btn-secondary btn-sm" id="btn-open-colab" style="padding: 0.2rem 0.55rem; font-size: 0.72rem;">Connect GPU</button>
               </div>
-              <div style="color: var(--text-muted); font-size: 0.75rem;">
-                Fast GPU optimization takes ~20 seconds using free Colab T4. Click <strong>Connect GPU</strong> to link your Colab URL.
+              <div style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 0.5rem;">
+                Fast GPU optimization takes ~20 seconds using free Colab T4.
               </div>
+              <a href="https://colab.research.google.com/github/likhith-naik01/DIP_MP/blob/main/ml/notebooks/03_Colab_Launch_Backend_Server.ipynb" target="_blank" class="btn btn-secondary btn-sm" style="width: 100%; text-align: center; text-decoration: none; display: block; font-size: 0.75rem; padding: 0.35rem 0.5rem;">
+                Launch Notebook in Colab
+              </a>
             </div>
           </div>
         </section>
@@ -223,7 +226,13 @@
         <div style="background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.25); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: var(--text-secondary);">
           <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.4rem;">How to Run on Free Google Colab GPU:</strong>
           <ol style="margin: 0; padding-left: 1.25rem; line-height: 1.6;">
-            <li>Open notebook: <code>ml/notebooks/03_Colab_Launch_Backend_Server.ipynb</code> in Google Colab.</li>
+            <li>Click the button below to open the notebook directly in Colab:
+              <div style="margin: 0.4rem 0;">
+                <a href="https://colab.research.google.com/github/likhith-naik01/DIP_MP/blob/main/ml/notebooks/03_Colab_Launch_Backend_Server.ipynb" target="_blank" class="btn btn-secondary btn-sm" style="display: inline-block; text-decoration: none; padding: 0.25rem 0.65rem; font-size: 0.75rem;">
+                  Open 03_Colab_Launch_Backend_Server in Colab
+                </a>
+              </div>
+            </li>
             <li>In Colab: <strong>Runtime &gt; Change runtime type &gt; T4 GPU</strong>.</li>
             <li>Run all cells (<strong>Runtime &gt; Run all</strong>).</li>
             <li>Copy the public URL printed (e.g. <code>https://...trycloudflare.com</code>).</li>
