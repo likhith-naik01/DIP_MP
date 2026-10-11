@@ -15,9 +15,36 @@ except Exception:
         m.mark_step = lambda: None
         sys.modules["torch._dynamo"] = m
 
-from dip_core.config import DIPConfig
-from dip_core.models.unet import UNetDIP
-from dip_core.models.conv_baseline import ConvDIPBaseline
-from dip_core.pipeline.trainer import train_dip
+from dip_core.config import (
+    DipTrainingConfig,
+    ModelConfig,
+    DamageConfig,
+    RestorationTask,
+    get_device,
+)
+from dip_core.models.unet_generator import UNetGenerator, UNetDIP
+from dip_core.models.conv_baseline_generator import ConvBaselineGenerator, ConvDIPBaseline
+from dip_core.pipeline.restoration_pipeline import run_restoration, RestorationOutput
+from dip_core.pipeline.dip_trainer import DipTrainer, TrainingResult
+from dip_core.metrics import calculate_psnr, calculate_ssim, calculate_masked_psnr
+from dip_core.baselines import evaluate_baselines
 
-__all__ = ["DIPConfig", "UNetDIP", "ConvDIPBaseline", "train_dip"]
+__all__ = [
+    "DipTrainingConfig",
+    "ModelConfig",
+    "DamageConfig",
+    "RestorationTask",
+    "get_device",
+    "UNetGenerator",
+    "UNetDIP",
+    "ConvBaselineGenerator",
+    "ConvDIPBaseline",
+    "run_restoration",
+    "RestorationOutput",
+    "DipTrainer",
+    "TrainingResult",
+    "calculate_psnr",
+    "calculate_ssim",
+    "calculate_masked_psnr",
+    "evaluate_baselines",
+]

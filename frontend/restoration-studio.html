@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restoration Studio | Thermal Deep Image Prior</title>
+  <meta name="description" content="Interactive thermal image restoration studio powered by Deep Image Prior and a 5-level U-Net generator.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="assets/css/theme.css">
+  <link rel="stylesheet" href="assets/css/layout.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/pages.css">
+</head>
+<body>
+  <div class="site-wrapper">
+    <!-- Navbar -->
+    <header class="site-navbar">
+      <div class="container navbar-inner">
+        <a href="index.html" class="brand-logo">
+          <div class="brand-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <span>Thermal<span style="color: var(--accent-cyan);">DIP</span></span>
+          <span class="brand-badge">Studio</span>
+        </a>
+
+        <ul class="nav-links">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="restoration-studio.html" class="nav-link active">Restoration Studio</a></li>
+          <li><a href="how-it-works.html" class="nav-link">How It Works</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <div class="status-pill" id="api-status-pill">
+            <span class="status-dot busy" id="api-status-dot"></span>
+            <span id="api-status-text" style="font-size: 0.8rem; color: var(--text-secondary);">Connecting...</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-api-settings">⚙️ API URL</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Studio Layout -->
+    <main class="container">
+      <div class="studio-layout">
+        
+        <!-- Left Panel: Input & Mask Drawing Tools -->
+        <section class="studio-panel">
+          <div class="card">
+            <h2 class="card-title">1. Thermal Image Input</h2>
+            
+            <!-- Drag & Drop Zone -->
+            <div id="image-dropzone" style="border: 2px dashed var(--border-card); border-radius: var(--radius-sm); padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: border-color var(--transition-fast);">
+              <input type="file" id="image-file-input" accept="image/*" style="display: none;">
+              <div class="dropzone-prompt">
+                <svg width="32" height="32" fill="none" stroke="var(--accent-cyan)" stroke-width="1.8" viewBox="0 0 24 24" style="margin: 0 auto 0.5rem auto; display: block;">
+                  <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <div style="font-weight: 500; font-size: 0.9rem;">Click or Drop Thermal Image</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">PNG, JPG, TIFF (Max 512px auto-scaled)</div>
+              </div>
+            </div>
+
+            <!-- Sample Presets -->
+            <div style="margin-top: 1rem;">
+              <label class="form-label" style="font-size: 0.8rem;">Or Load Sample Thermal Image:</label>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm btn-sample-image" data-url="../ml/sample_images/sample_thermal_01.png">Sample 1</button>
+                <button type="button" class="btn btn-secondary btn-sm btn-sample-image" data-url="../ml/sample_images/sample_thermal_02.png">Sample 2</button>
+                <button type="button" class="btn btn-secondary btn-sm btn-sample-image" data-url="../ml/sample_images/sample_thermal_03.png">Sample 3</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mask Editor Tools -->
+          <div class="card">
+            <h2 class="card-title">2. Inpainting Mask Tools</h2>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+              Draw over corrupted sensor regions, dead pixels, or streak lines to inpaint them.
+            </p>
+            
+            <div class="canvas-tools-bar">
+              <button type="button" class="btn btn-primary btn-sm" id="btn-tool-brush">🖌️ Brush</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-tool-eraser">🧹 Eraser</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-mask">Reset Mask</button>
+            </div>
+
+            <div class="form-group" style="margin-top: 0.85rem;">
+              <label class="form-label" for="brush-size">Brush Radius</label>
+              <input type="range" id="brush-size" min="2" max="64" value="16" style="width: 100%;">
+            </div>
+
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="chk-auto-mask">
+                <span>Auto-detect sensor dead pixels</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="chk-simulate-damage">
+                <span>Simulate synthetic sensor damage</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Hyperparameters Config -->
+          <div class="card">
+            <h2 class="card-title">3. Model Hyperparameters</h2>
+
+            <div class="form-group">
+              <label class="form-label" for="opt-task">Restoration Task</label>
+              <select id="opt-task" class="form-select">
+                <option value="inpainting">Inpainting (Dead Pixels & Streaks)</option>
+                <option value="denoising">Denoising (Thermal Sensor Noise)</option>
+                <option value="super_resolution">Super-Resolution</option>
+                <option value="combined">Combined Degradation</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="opt-model">Generator Architecture</label>
+              <select id="opt-model" class="form-select">
+                <option value="unet">5-Level U-Net (with 1x1 Skip Projections)</option>
+                <option value="conv_baseline">Conv Baseline (Plain Encoder-Decoder)</option>
+              </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label" for="opt-iterations">Iterations</label>
+                <input type="number" id="opt-iterations" class="form-control" value="1500" min="50" max="5000" step="50">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="opt-lr">Learning Rate</label>
+                <input type="number" id="opt-lr" class="form-control" value="0.01" step="0.001" min="0.001">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="opt-colormap">Display Colormap</label>
+              <select id="opt-colormap" class="form-select">
+                <option value="ironbow">Ironbow (Standard FLIR Thermal)</option>
+                <option value="inferno">Inferno</option>
+                <option value="viridis">Viridis</option>
+                <option value="grayscale">Grayscale</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+              <button type="button" class="btn btn-primary" id="btn-start-restoration" style="flex: 1;" disabled>
+                🚀 Start DIP Optimization
+              </button>
+              <button type="button" class="btn btn-danger btn-sm" id="btn-cancel-restoration" disabled>
+                Stop
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Center Workbench: Visualizer & Before/After Slider -->
+        <section class="studio-panel">
+          <div class="card" style="padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <h2 class="card-title" style="margin-bottom: 0;">Interactive Thermal Viewport</h2>
+              <button class="btn btn-secondary btn-sm" id="btn-download-restored" disabled>
+                💾 Download PNG
+              </button>
+            </div>
+
+            <!-- Dual-Layer Canvas for Drawing Mask over Image -->
+            <div class="canvas-wrapper">
+              <img id="preview-source-img" src="" alt="Thermal Source" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; object-fit: contain;">
+              <canvas id="mask-canvas" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Progress Meter -->
+            <div class="progress-container">
+              <div class="progress-header">
+                <span>Optimization Progress: <strong id="progress-text">0%</strong></span>
+                <span>Iteration: <strong id="iter-counter">0 / 1500</strong> • ETA: <strong id="eta-text">--</strong></span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" id="progress-bar"></div>
+              </div>
+            </div>
+
+            <!-- Before / After Slider Comparison -->
+            <div style="margin-top: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem;">
+                <span>⬅️ Degraded Thermal Input</span>
+                <span>DIP U-Net Restored ➡️</span>
+              </div>
+              <div class="slider-container" id="before-after-slider">
+                <img id="slider-before-img" class="slider-img" src="" alt="Degraded Thermal">
+                <div class="slider-overlay">
+                  <img id="slider-after-img" class="slider-img" src="" alt="Restored Thermal">
+                </div>
+                <div class="slider-handle">
+                  <div class="slider-button">↔</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Panel: Quantitative Metrics & Convergence Loss -->
+        <section class="studio-panel">
+          <div class="card">
+            <h2 class="card-title">Restoration Metrics</h2>
+            <div class="metrics-grid">
+              <div class="stat-card">
+                <div class="stat-value" id="stat-psnr">-- dB</div>
+                <div class="stat-label">Peak SNR</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="stat-ssim">--</div>
+                <div class="stat-label">SSIM Index</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="stat-loss">--</div>
+                <div class="stat-label">Final Loss</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="stat-time">-- s</div>
+                <div class="stat-label">Elapsed Time</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Convergence Chart -->
+          <div class="card" style="flex: 1; min-height: 300px; display: flex; flex-direction: column;">
+            <h2 class="card-title">Convergence Loss Curve</h2>
+            <div style="flex: 1; position: relative; min-height: 220px;">
+              <canvas id="loss-chart-canvas"></canvas>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+              Logarithmic scale: Real-time masked MSE loss tracking
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- API Settings Modal -->
+    <div class="modal-backdrop" id="api-modal">
+      <div class="modal-box">
+        <h3 style="margin-bottom: 0.75rem;">Backend Server Connection</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+          Connect to your local server or Google Colab HTTPS tunnel URL (from Cloudflared / ngrok).
+        </p>
+        <div class="form-group">
+          <label class="form-label" for="api-url-input">API Base URL</label>
+          <input type="text" id="api-url-input" class="form-control" placeholder="http://localhost:8000 or https://xyz.trycloudflare.com">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" id="btn-close-api-modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btn-save-api-url">Save & Connect</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div>
+          <strong>Thermal DIP Restoration Studio</strong> • Major Project (DIP)
+        </div>
+        <ul class="footer-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="restoration-studio.html">Studio</a></li>
+          <li><a href="how-it-works.html">Documentation</a></li>
+        </ul>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="assets/js/restoration-studio-page.js"></script>
+</body>
+</html>

@@ -41,5 +41,7 @@ htmlcov/
 storage/uploads/
 storage/results/
 benchmark_output/
+backend/temp/
+outputs/
 *.log
 *.db

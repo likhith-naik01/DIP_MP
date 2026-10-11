@@ -1,0 +1,80 @@
+/* Design Tokens & Theme Variables */
+:root {
+  --bg-main: #080c14;
+  --bg-card: rgba(15, 23, 42, 0.75);
+  --bg-card-hover: rgba(24, 34, 58, 0.85);
+  --bg-input: rgba(10, 16, 30, 0.8);
+  --border-card: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(0, 229, 255, 0.4);
+  
+  /* Primary & Accent Colors */
+  --accent-cyan: #00e5ff;
+  --accent-cyan-glow: rgba(0, 229, 255, 0.25);
+  --accent-orange: #ff5722;
+  --accent-orange-glow: rgba(255, 87, 34, 0.25);
+  --accent-purple: #9c27b0;
+  --accent-green: #00e676;
+  --accent-red: #ff1744;
+  
+  /* Text */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  
+  /* Elevation & Glassmorphism */
+  --glass-blur: blur(16px);
+  --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 25px rgba(0, 229, 255, 0.15);
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 9999px;
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(circle at 10% 15%, rgba(255, 87, 34, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 90% 80%, rgba(0, 229, 255, 0.07) 0%, transparent 45%),
+    linear-gradient(180deg, rgba(8, 12, 20, 0) 0%, rgba(8, 12, 20, 1) 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: #33ebff;
+}
+
+code, pre {
+  font-family: var(--font-mono);
+}

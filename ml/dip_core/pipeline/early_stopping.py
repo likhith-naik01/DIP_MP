@@ -1,59 +1,63 @@
-import copy
+"""Early stopping and moving-average loss plateau detection for Deep Image Prior."""
+
 from typing import Optional, Dict, Any
 import torch
 import torch.nn as nn
 
 
-class EarlyStoppingPlateau:
+class EarlyStopper:
     """
-    Monitors training loss for plateaus (since ground-truth PSNR is unavailable at inference).
-    Keeps a checkpoint of the best model weights.
+    Monitors moving-average training loss for convergence plateaus.
+
+    NOTE ON HEURISTIC NATURE:
+    In real-world deployment without ground-truth reference images, optimal stopping
+    cannot use PSNR or SSIM. DIP networks fit natural image structures before fitting
+    high-frequency noise (spectral bias). Selecting the best iteration using smoothed
+    loss plateau or a bounded iteration limit is an empirical heuristic to prevent
+    late-stage noise memorization.
     """
 
     def __init__(
         self,
-        patience: int = 300,
+        patience: int = 250,
         min_delta: float = 1e-5,
+        smoothing_window: int = 20,
         min_iterations: int = 300,
-        mode: str = "min",
     ):
         self.patience = patience
         self.min_delta = min_delta
+        self.smoothing_window = smoothing_window
         self.min_iterations = min_iterations
-        self.mode = mode
 
-        self.best_loss = float("inf") if mode == "min" else float("-inf")
+        self.smoothed_loss: Optional[float] = None
+        self.best_loss = float("inf")
         self.best_iteration = 0
-        self.best_state_dict: Optional[Dict[str, Any]] = None
         self.best_output: Optional[torch.Tensor] = None
         self.counter = 0
         self.should_stop = False
+        self._alpha = 2.0 / (smoothing_window + 1.0)
 
     def step(
         self,
         loss: float,
         iteration: int,
-        model: nn.Module,
         current_output: Optional[torch.Tensor] = None,
     ) -> bool:
         """
-        Update with current step's loss.
-        Returns True if early stopping criteria triggered.
+        Update tracker with current iteration's loss.
+        Returns True if early stopping plateau is triggered.
         """
-        is_better = False
-        if self.mode == "min":
-            if (self.best_loss - loss) > self.min_delta:
-                is_better = True
+        # Exponential Moving Average update
+        if self.smoothed_loss is None:
+            self.smoothed_loss = loss
         else:
-            if (loss - self.best_loss) > self.min_delta:
-                is_better = True
+            self.smoothed_loss = self._alpha * loss + (1.0 - self._alpha) * self.smoothed_loss
 
-        if is_better or self.best_state_dict is None:
-            self.best_loss = loss
+        # Check improvement against best smoothed loss
+        if (self.best_loss - self.smoothed_loss) > self.min_delta:
+            self.best_loss = self.smoothed_loss
             self.best_iteration = iteration
             self.counter = 0
-            # Save lightweight CPU state dict copy
-            self.best_state_dict = {k: v.cpu().clone() for k, v in model.state_dict().items()}
             if current_output is not None:
                 self.best_output = current_output.detach().cpu().clone()
         else:
@@ -63,7 +67,6 @@ class EarlyStoppingPlateau:
 
         return self.should_stop
 
-    def restore_best_model(self, model: nn.Module) -> None:
-        """Restore model to best saved state dict."""
-        if self.best_state_dict is not None:
-            model.load_state_dict(self.best_state_dict)
+
+# Backward compatibility alias
+EarlyStoppingPlateau = EarlyStopper
