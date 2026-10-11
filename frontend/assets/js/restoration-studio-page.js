@@ -24,19 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const fileInput = document.getElementById("image-file-input");
   const previewImg = document.getElementById("preview-source-img");
   const maskCanvas = document.getElementById("mask-canvas");
-  const brushSizeInput = document.getElementById("brush-size");
-  const btnClearMask = document.getElementById("btn-clear-mask");
-  const btnToolBrush = document.getElementById("btn-tool-brush");
-  const btnToolEraser = document.getElementById("btn-tool-eraser");
-
-  const formTask = document.getElementById("opt-task");
-  const formModel = document.getElementById("opt-model");
-  const formIterations = document.getElementById("opt-iterations");
-  const formLr = document.getElementById("opt-lr");
-  const formColormap = document.getElementById("opt-colormap");
-  const chkSimDamage = document.getElementById("chk-simulate-damage");
-  const chkAutoMask = document.getElementById("chk-auto-mask");
   const autoDetectDesc = document.getElementById("auto-detect-status-desc");
+  const btnOpenColab = document.getElementById("btn-open-colab");
 
   const btnStartRestoration = document.getElementById("btn-start-restoration");
   const btnCancelRestoration = document.getElementById("btn-cancel-restoration");
@@ -100,6 +89,13 @@ document.addEventListener("DOMContentLoaded", () => {
     checkApiConnection();
   });
 
+  if (btnOpenColab) {
+    btnOpenColab.addEventListener("click", () => {
+      apiUrlInput.value = getApiBaseUrl();
+      apiModal.classList.add("active");
+    });
+  }
+
   function updateAutoDetectStatus(imgElement) {
     if (!autoDetectDesc) return;
     try {
@@ -149,62 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Sample Images Buttons
-  document.querySelectorAll(".btn-sample-image").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const sampleUrl = btn.dataset.url;
-      try {
-        const resp = await fetch(sampleUrl);
-        const blob = await resp.blob();
-        currentFileBlob = blob;
-        const dataUrl = URL.createObjectURL(blob);
-        previewImg.src = dataUrl;
-        previewImg.style.display = "block";
-        sliderBeforeImg.src = dataUrl;
-        sliderAfterImg.src = dataUrl;
-        maskEditor.resize(512, 512);
-        dropzone.querySelector(".dropzone-prompt").style.display = "none";
-        btnStartRestoration.disabled = false;
-        btnStartRestoration.textContent = "Optimize";
-        
-        const tempImg = new Image();
-        tempImg.onload = () => updateAutoDetectStatus(tempImg);
-        tempImg.src = dataUrl;
-        
-        showToast(`Loaded sample: ${btn.textContent}`, "info");
-      } catch (err) {
-        showToast("Failed to load sample image.", "error");
-      }
-    });
-  });
-
-  // 3. Mask Tools
-  brushSizeInput.addEventListener("input", (e) => {
-    maskEditor.setBrushSize(e.target.value);
-  });
-
-  btnToolBrush.addEventListener("click", () => {
-    maskEditor.setTool("brush");
-    btnToolBrush.classList.add("btn-primary");
-    btnToolBrush.classList.remove("btn-secondary");
-    btnToolEraser.classList.remove("btn-primary");
-    btnToolEraser.classList.add("btn-secondary");
-  });
-
-  btnToolEraser.addEventListener("click", () => {
-    maskEditor.setTool("eraser");
-    btnToolEraser.classList.add("btn-primary");
-    btnToolEraser.classList.remove("btn-secondary");
-    btnToolBrush.classList.remove("btn-primary");
-    btnToolBrush.classList.add("btn-secondary");
-  });
-
-  btnClearMask.addEventListener("click", () => {
-    maskEditor.clear();
-    showToast("Mask cleared", "info");
-  });
-
-  // 4. Start Restoration Flow
+  // 3. Start Optimization Flow (Fully Automated)
   btnStartRestoration.addEventListener("click", async () => {
     if (!currentFileBlob) {
       showToast("Please upload a thermal image first.", "error");
@@ -214,24 +155,23 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       btnStartRestoration.disabled = true;
       btnStartRestoration.textContent = "Optimizing...";
+      btnCancelRestoration.style.display = "block";
       btnCancelRestoration.disabled = false;
       btnDownloadRestored.disabled = true;
       chart.reset();
 
-      const maskBlob = await maskEditor.getMaskBlob();
-
       const options = {
-        task: formTask ? formTask.value : "auto",
-        model: formModel ? formModel.value : "unet",
-        iterations: formIterations ? Number(formIterations.value) : 1500,
-        learning_rate: formLr ? Number(formLr.value) : 0.01,
-        colormap: formColormap ? formColormap.value : "ironbow",
-        simulate_damage: chkSimDamage ? chkSimDamage.checked : false,
-        auto_detect_mask: chkAutoMask ? chkAutoMask.checked : true,
+        task: "auto",
+        model: "unet",
+        iterations: 1500,
+        learning_rate: 0.01,
+        colormap: "ironbow",
+        simulate_damage: true,
+        auto_detect_mask: true,
       };
 
-      showToast("Submitting optimization job to GPU...", "info");
-      const jobRes = await ApiClient.createRestorationJob(currentFileBlob, maskBlob, options);
+      showToast("Submitting optimization job...", "info");
+      const jobRes = await ApiClient.createRestorationJob(currentFileBlob, null, options);
       activeJobId = jobRes.job_id;
       showToast(`Optimization job ${activeJobId} started!`, "success");
 
@@ -241,6 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btnStartRestoration.disabled = false;
       btnStartRestoration.textContent = "Optimize";
       btnCancelRestoration.disabled = true;
+      btnCancelRestoration.style.display = "none";
     }
   });
 
@@ -335,5 +276,6 @@ document.addEventListener("DOMContentLoaded", () => {
     btnStartRestoration.disabled = false;
     btnStartRestoration.textContent = "Optimize";
     btnCancelRestoration.disabled = true;
+    btnCancelRestoration.style.display = "none";
   }
 });

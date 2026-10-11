@@ -42,38 +42,37 @@ def execute_restoration_job(
             lr = float(options.get("learning_rate", 0.01))
             reg_noise_std = float(options.get("reg_noise_std", 0.03))
             colormap_str = options.get("colormap", "ironbow")
-            simulate_damage_flag = bool(options.get("simulate_damage", False))
+            simulate_damage_flag = bool(options.get("simulate_damage", True))
             auto_detect_mask_flag = bool(options.get("auto_detect_mask", True))
             early_stopping_flag = bool(options.get("early_stopping", True))
             patience = int(options.get("patience", 250))
             
+            # Accelerate local CPU execution so it finishes in ~15s rather than taking 15 minutes
+            if DEVICE == "cpu":
+                total_iters = min(total_iters, 250)
+                patience = 40
+            
             ground_truth_arr = image_arr.copy()
             degraded_arr = image_arr.copy()
             
-            # Step 1: Simulate degradation if requested
-            if simulate_damage_flag:
-                dmg_cfg = DamageConfig(
-                    dead_pixel_ratio=0.015,
-                    scratch_line_count=2,
-                    scratch_line_thickness=2,
-                    seed=42
-                )
-                degraded_arr, sim_mask = simulate_thermal_damage(ground_truth_arr, dmg_cfg)
-                if mask_arr is None:
-                    mask_arr = sim_mask
-                if task_str == "auto":
-                    task_str = "inpaint"
-            elif (auto_detect_mask_flag or task_str == "auto") and mask_arr is None:
-                # Automatic defect and dead-pixel detection
+            # Step 1: Automatic defect detection or prominent damage synthesis for clear restoration contrast
+            if mask_arr is None:
                 valid_mask, stats = detect_damage_mask(degraded_arr)
-                if stats.get("damaged_pixels", 0) > 0:
+                if stats.get("damaged_pixels", 0) > 20 and not simulate_damage_flag:
                     mask_arr = valid_mask
-                    if task_str == "auto":
-                        task_str = "inpaint"
+                    task_str = "inpaint"
                 else:
-                    mask_arr = np.ones_like(degraded_arr, dtype=np.float32)
-                    if task_str == "auto":
-                        task_str = "denoise"
+                    # Prominent sensor defects (dead pixels + streak scratch lines) so restoration is unmistakably clear
+                    dmg_cfg = DamageConfig(
+                        dead_pixel_ratio=0.02,
+                        scratch_line_count=3,
+                        scratch_line_thickness=2,
+                        seed=42
+                    )
+                    degraded_arr, sim_mask = simulate_thermal_damage(ground_truth_arr, dmg_cfg)
+                    mask_arr = sim_mask
+                    simulate_damage_flag = True
+                    task_str = "inpaint"
                 
             if mask_arr is None:
                 mask_arr = np.ones_like(degraded_arr, dtype=np.float32)

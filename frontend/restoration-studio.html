@@ -49,132 +49,57 @@
     <main class="container">
       <div class="studio-layout">
         
-        <!-- Left Panel: Input & Mask Drawing Tools -->
+        <!-- Left Panel: Input & 1-Click Optimize -->
         <section class="studio-panel">
           <div class="card">
-            <h2 class="card-title">1. Thermal Image Input</h2>
+            <h2 class="card-title">Thermal Image Input</h2>
             
             <!-- Drag & Drop Zone -->
-            <div id="image-dropzone" style="border: 2px dashed var(--border-card); border-radius: var(--radius-sm); padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: border-color var(--transition-fast);">
+            <div id="image-dropzone" style="border: 2px dashed var(--border-card); border-radius: var(--radius-sm); padding: 1.75rem 1rem; text-align: center; cursor: pointer; transition: border-color var(--transition-fast);">
               <input type="file" id="image-file-input" accept="image/*" style="display: none;">
               <div class="dropzone-prompt">
-                <svg width="32" height="32" fill="none" stroke="var(--accent-cyan)" stroke-width="1.8" viewBox="0 0 24 24" style="margin: 0 auto 0.5rem auto; display: block;">
+                <svg width="34" height="34" fill="none" stroke="var(--accent-cyan)" stroke-width="1.8" viewBox="0 0 24 24" style="margin: 0 auto 0.5rem auto; display: block;">
                   <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
-                <div style="font-weight: 500; font-size: 0.9rem;">Click or Drop Thermal Image</div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">PNG, JPG, TIFF (Max 512px auto-scaled)</div>
+                <div style="font-weight: 600; font-size: 0.95rem;">Click or Drop Thermal Image</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">PNG, JPG, TIFF (Auto-normalized &amp; scaled)</div>
               </div>
             </div>
 
-            <!-- Sample Presets -->
-            <div style="margin-top: 1rem;">
-              <label class="form-label" style="font-size: 0.8rem;">Or Load Sample Thermal Image:</label>
-              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <button type="button" class="btn btn-secondary btn-sm btn-sample-image" data-url="../ml/sample_images/sample_thermal_01.png">Sample 1</button>
-                <button type="button" class="btn btn-secondary btn-sm btn-sample-image" data-url="../ml/sample_images/sample_thermal_02.png">Sample 2</button>
-                <button type="button" class="btn btn-secondary btn-sm btn-sample-image" data-url="../ml/sample_images/sample_thermal_03.png">Sample 3</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Auto-Detect & Optimization -->
-          <div class="card">
-            <h2 class="card-title">2. Auto-Detect & Optimize</h2>
-
-            <div class="auto-detect-banner">
+            <!-- Auto-Detect Status Banner -->
+            <div class="auto-detect-banner" style="margin-top: 1.25rem;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
                 <span class="auto-detect-badge">
                   <span class="status-dot online" style="width: 7px; height: 7px;"></span>
-                  Auto-Detection Active
+                  Auto-Detect &amp; Restore
                 </span>
-                <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">DIP Thermal Prior</span>
+                <span style="font-size: 0.72rem; color: var(--accent-cyan); font-weight: 600;">DIP U-Net</span>
               </div>
               <div id="auto-detect-status-desc" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45;">
-                Automatically analyzes sensor dead pixels, scratch streaks, and thermal noise to configure the restoration pipeline.
+                Automated sensor damage simulation and Deep Image Prior restoration. Upload any image and click Optimize.
               </div>
             </div>
 
-            <!-- Primary Action Buttons -->
-            <div style="display: flex; gap: 0.75rem;">
-              <button type="button" class="btn btn-primary" id="btn-start-restoration" style="flex: 1; font-size: 1.05rem; padding: 0.85rem 1.25rem; font-weight: 700; letter-spacing: 0.02em;" disabled>
+            <!-- Single Optimize Action Button -->
+            <div style="margin-top: 1.25rem;">
+              <button type="button" class="btn btn-primary" id="btn-start-restoration" style="width: 100%; font-size: 1.1rem; padding: 0.95rem 1rem; font-weight: 700; letter-spacing: 0.02em;" disabled>
                 Optimize
               </button>
-              <button type="button" class="btn btn-danger btn-sm" id="btn-cancel-restoration" style="padding: 0 1.2rem;" disabled>
+              <button type="button" class="btn btn-danger btn-sm" id="btn-cancel-restoration" style="width: 100%; margin-top: 0.6rem; padding: 0.5rem 1rem;" disabled>
                 Stop
               </button>
             </div>
 
-            <!-- Collapsible Advanced Settings -->
-            <details class="accordion-details" id="advanced-options-details">
-              <summary class="accordion-summary">
-                <span>Advanced Settings</span>
-                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Optional</span>
-              </summary>
-              <div class="accordion-body">
-                <div class="form-group">
-                  <label class="form-label" for="opt-task">Restoration Task</label>
-                  <select id="opt-task" class="form-select">
-                    <option value="auto" selected>Auto-Detect (Recommended)</option>
-                    <option value="inpainting">Inpainting (Dead Pixels & Streaks)</option>
-                    <option value="denoising">Denoising (Thermal Sensor Noise)</option>
-                    <option value="super_resolution">Super-Resolution</option>
-                    <option value="combined">Combined Degradation</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="opt-model">Generator Architecture</label>
-                  <select id="opt-model" class="form-select">
-                    <option value="unet" selected>5-Level U-Net (with 1x1 Skip Projections)</option>
-                    <option value="conv_baseline">Conv Baseline (Plain Encoder-Decoder)</option>
-                  </select>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                  <div class="form-group">
-                    <label class="form-label" for="opt-iterations">Iterations</label>
-                    <input type="number" id="opt-iterations" class="form-control" value="1500" min="50" max="5000" step="50">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="opt-lr">Learning Rate</label>
-                    <input type="number" id="opt-lr" class="form-control" value="0.01" step="0.001" min="0.001">
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="opt-colormap">Display Colormap</label>
-                  <select id="opt-colormap" class="form-select">
-                    <option value="ironbow" selected>Ironbow (Standard FLIR Thermal)</option>
-                    <option value="inferno">Inferno</option>
-                    <option value="viridis">Viridis</option>
-                    <option value="grayscale">Grayscale</option>
-                  </select>
-                </div>
-
-                <!-- Manual Mask Tools -->
-                <div style="border-top: 1px solid var(--border-card); padding-top: 0.75rem;">
-                  <label class="form-label" style="font-size: 0.8rem; margin-bottom: 0.4rem;">Manual Mask Editor (Optional Override)</label>
-                  <div class="canvas-tools-bar">
-                    <button type="button" class="btn btn-primary btn-sm" id="btn-tool-brush">Brush</button>
-                    <button type="button" class="btn btn-secondary btn-sm" id="btn-tool-eraser">Eraser</button>
-                    <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-mask">Reset</button>
-                  </div>
-
-                  <div class="form-group" style="margin-top: 0.6rem;">
-                    <label class="form-label" for="brush-size" style="font-size: 0.75rem;">Brush Radius</label>
-                    <input type="range" id="brush-size" min="2" max="64" value="16" style="width: 100%;">
-                  </div>
-
-                  <div class="form-group" style="margin-top: 0.5rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; cursor: pointer;">
-                      <input type="checkbox" id="chk-auto-mask" checked style="display: none;">
-                      <input type="checkbox" id="chk-simulate-damage">
-                      <span>Simulate synthetic sensor damage</span>
-                    </label>
-                  </div>
-                </div>
+            <!-- Colab GPU Fast Execution Banner -->
+            <div style="margin-top: 1.25rem; padding: 0.85rem; border-radius: var(--radius-sm); background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.25); font-size: 0.8rem; line-height: 1.45;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                <strong style="color: var(--accent-cyan);">Google Colab GPU</strong>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-open-colab" style="padding: 0.2rem 0.55rem; font-size: 0.72rem;">Connect GPU</button>
               </div>
-            </details>
+              <div style="color: var(--text-muted); font-size: 0.75rem;">
+                Fast GPU optimization takes ~20 seconds using free Colab T4. Click <strong>Connect GPU</strong> to link your Colab URL.
+              </div>
+            </div>
           </div>
         </section>
 
@@ -266,9 +191,21 @@
     <div class="modal-backdrop" id="api-modal">
       <div class="modal-box">
         <h3 style="margin-bottom: 0.75rem;">Backend Server Connection</h3>
-        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-          Connect to your local server or Google Colab HTTPS tunnel URL (from Cloudflared / ngrok).
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          Connect to Google Colab T4 GPU for lightning-fast optimization (~20 seconds), or your local server.
         </p>
+
+        <div style="background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.25); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: var(--text-secondary);">
+          <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.4rem;">How to Run on Free Google Colab GPU:</strong>
+          <ol style="margin: 0; padding-left: 1.25rem; line-height: 1.6;">
+            <li>Open notebook: <code>ml/notebooks/03_Colab_Launch_Backend_Server.ipynb</code> in Google Colab.</li>
+            <li>In Colab: <strong>Runtime &gt; Change runtime type &gt; T4 GPU</strong>.</li>
+            <li>Run all cells (<strong>Runtime &gt; Run all</strong>).</li>
+            <li>Copy the public URL printed (e.g. <code>https://...trycloudflare.com</code>).</li>
+            <li>Paste it below and click <strong>Save &amp; Connect</strong>!</li>
+          </ol>
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="api-url-input">API Base URL</label>
           <input type="text" id="api-url-input" class="form-control" placeholder="http://localhost:8000 or https://xyz.trycloudflare.com">
