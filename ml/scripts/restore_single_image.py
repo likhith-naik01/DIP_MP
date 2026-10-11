@@ -57,7 +57,7 @@ def main():
     print(f"Artifacts saved to: {out_dir.resolve()}")
     print("Metrics:")
     for k, v in result.metrics.items():
-        print(f"  • {k}: {v}")
+        print(f"  - {k}: {v}")
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ Thermal Image Restoration using **Deep Image Prior (DIP)** with a 5-level U-Net 
 
 ---
 
-## ⚡ Quick Start on Google Colab (GPU)
+## Quick Start on Google Colab (GPU)
 
 All heavy machine learning optimization runs on **Google Colab (GPU)**. No local GPU is needed.
 
@@ -22,7 +22,7 @@ All heavy machine learning optimization runs on **Google Colab (GPU)**. No local
 
 ---
 
-## 🎯 Why Deep Image Prior for Thermal Imaging?
+## Why Deep Image Prior for Thermal Imaging?
 
 1. **Lack of Paired Thermal Datasets**: Unlike RGB images, ground-truth clean thermal images under extreme temperatures, outdoor weather, or aerospace operations are difficult and expensive to collect.
 2. **Microbolometer Sensor Physics**: Uncooled Focal Plane Arrays (FPAs) suffer from hardware failure modes:
@@ -33,7 +33,7 @@ All heavy machine learning optimization runs on **Google Colab (GPU)**. No local
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ```
 DIP_MP/
@@ -122,7 +122,7 @@ DIP_MP/
 
 ---
 
-## 📐 Mathematical Formulation
+## Mathematical Formulation
 
 ### 1. Masked Reconstruction Loss
 Let $x_0 \in [0, 1]^{H \times W}$ denote the degraded thermal image, $M \in \{0, 1\}^{H \times W}$ the binary mask ($M_{ij} = 1$ for valid pixels, $0$ for damaged pixels), and $f_\theta$ the generator parameterized by $\theta$. The objective is:
@@ -143,7 +143,7 @@ Training stops automatically when $\bar{\mathcal{L}}_t$ fails to improve for `pa
 
 ---
 
-## 🏗️ 5-Level U-Net Architecture
+## 5-Level U-Net Architecture
 
 | Level | In Channels | Out Channels | Downsampling / Upsampling | Skip Connection Channel Reduction |
 | :--- | :---: | :---: | :---: | :---: |
@@ -162,7 +162,7 @@ Training stops automatically when $\bar{\mathcal{L}}_t$ fails to improve for `pa
 
 ---
 
-## 📊 Quantitative Benchmark Results
+## Quantitative Benchmark Results
 
 Evaluated across representative thermal test scenes corrupted with 1.5% dead pixel dropout and multi-pixel readout streaks:
 
@@ -177,7 +177,7 @@ Evaluated across representative thermal test scenes corrupted with 1.5% dead pix
 
 ---
 
-## 💻 Command Line Interface (CLI)
+## Command Line Interface (CLI)
 
 ### Single Image Restoration
 ```bash
@@ -204,7 +204,7 @@ python ml/scripts/run_restoration_benchmark.py \
 
 ---
 
-## 🌐 Backend API Reference
+## Backend API Reference
 
 Base URL: `http://localhost:8000` (or your Colab Cloudflared public URL).
 
@@ -219,7 +219,7 @@ Base URL: `http://localhost:8000` (or your Colab Cloudflared public URL).
 
 ---
 
-## 🎨 Frontend Web Studio
+## Frontend Web Studio
 
 To launch the web client locally:
 ```bash
@@ -237,7 +237,8 @@ Then open `http://localhost:3000` in any modern web browser.
 
 ---
 
-## 🧪 Testing & Verification
+## Testing & Verification
+
 
 Run the test suite:
 ```bash

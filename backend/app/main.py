@@ -1,8 +1,16 @@
-"""
-Main FastAPI entrypoint for the Deep Image Prior Thermal Restoration API.
-"""
+import sys
+from pathlib import Path
+
+# Ensure ML package and repo root are in Python search path
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+ML_DIR = REPO_ROOT / "ml"
+for p in [str(ML_DIR), str(REPO_ROOT)]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from backend.app.routes.health_routes import router as health_router
 from backend.app.routes.restoration_routes import router as restoration_router
 from backend.app.config import DEVICE, GPU_NAME
@@ -30,16 +38,10 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/api")
     app.include_router(restoration_router, prefix="/api")
 
-    @app.get("/")
-    def root():
-        return {
-            "name": "Thermal Image Restoration API (Deep Image Prior)",
-            "status": "online",
-            "compute_device": DEVICE,
-            "gpu_hardware": GPU_NAME,
-            "docs": "/docs",
-            "health": "/api/health"
-        }
+    # Mount Frontend UI directly so the app can be used in 1 click
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    if frontend_dir.exists():
+        app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
 
     return app
 
