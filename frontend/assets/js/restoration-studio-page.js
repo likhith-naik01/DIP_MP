@@ -99,10 +99,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const health = await ApiClient.checkHealth();
     if (health.status === "ok") {
       apiStatusDot.className = "status-dot online";
-      apiStatusText.textContent = `Online (${health.gpu_name || health.device})`;
+      if (health.cuda_available) {
+        apiStatusText.textContent = `CUDA Active (${health.gpu_name})`;
+        apiStatusDot.style.background = "var(--accent-cyan)";
+        apiStatusDot.style.boxShadow = "0 0 10px var(--accent-cyan)";
+      } else {
+        apiStatusText.textContent = `CPU Mode (Connect Colab for CUDA GPU)`;
+        apiStatusDot.style.background = "#ffb300";
+        apiStatusDot.style.boxShadow = "0 0 8px #ffb300";
+      }
     } else {
       apiStatusDot.className = "status-dot offline";
       apiStatusText.textContent = "Offline / Disconnected";
+      apiStatusDot.style.background = "#ff1744";
+      apiStatusDot.style.boxShadow = "none";
     }
   }
 
