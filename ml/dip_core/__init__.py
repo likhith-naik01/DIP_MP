@@ -26,6 +26,13 @@ from dip_core.models.unet_generator import UNetGenerator, UNetDIP
 from dip_core.models.conv_baseline_generator import ConvBaselineGenerator, ConvDIPBaseline
 from dip_core.pipeline.restoration_pipeline import run_restoration, RestorationOutput
 from dip_core.pipeline.dip_trainer import DipTrainer, TrainingResult
+from dip_core.pipeline.deblurring import (
+    compute_sharpness_metrics,
+    strong_deblur_pipeline,
+    richardson_lucy_deconvolution,
+    adaptive_unsharp_mask,
+)
+from dip_core.pipeline.image_postprocessing import enhance_sharpness_and_contrast
 from dip_core.metrics import calculate_psnr, calculate_ssim, calculate_masked_psnr
 from dip_core.baselines import evaluate_baselines
 
@@ -43,6 +50,11 @@ __all__ = [
     "RestorationOutput",
     "DipTrainer",
     "TrainingResult",
+    "compute_sharpness_metrics",
+    "strong_deblur_pipeline",
+    "richardson_lucy_deconvolution",
+    "adaptive_unsharp_mask",
+    "enhance_sharpness_and_contrast",
     "calculate_psnr",
     "calculate_ssim",
     "calculate_masked_psnr",

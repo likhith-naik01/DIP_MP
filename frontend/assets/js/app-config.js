@@ -7,7 +7,14 @@ const DEFAULT_URL = "http://localhost:8000";
 
 export function getApiBaseUrl() {
   const saved = localStorage.getItem(STORAGE_KEY);
-  return saved ? saved.trim().replace(/\/+$/, "") : DEFAULT_URL;
+  if (saved && saved.trim()) {
+    return saved.trim().replace(/\/+$/, "");
+  }
+  // When deployed and served directly from backend, use current origin
+  if (typeof window !== "undefined" && window.location && window.location.origin && window.location.protocol.startsWith("http")) {
+    return window.location.origin;
+  }
+  return DEFAULT_URL;
 }
 
 export function setApiBaseUrl(url) {

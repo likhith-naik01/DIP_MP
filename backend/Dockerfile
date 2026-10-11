@@ -22,13 +22,16 @@ RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 COPY ml /app/ml
 RUN pip install --no-cache-dir -e /app/ml
 
+# Copy frontend assets for direct web studio serving
+COPY frontend /app/frontend
+
 # Copy backend application
 COPY backend /app/backend
-WORKDIR /app/backend
+WORKDIR /app
 
 # Create storage directories
 RUN mkdir -p /app/storage/uploads /app/storage/results /app/storage/sample_images
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

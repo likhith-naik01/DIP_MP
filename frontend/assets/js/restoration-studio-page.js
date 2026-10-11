@@ -39,6 +39,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const statSsim = document.getElementById("stat-ssim");
   const statLoss = document.getElementById("stat-loss");
   const statTime = document.getElementById("stat-time");
+  const statSharpness = document.getElementById("stat-sharpness");
+  const statTenengrad = document.getElementById("stat-tenengrad");
+  const taskSelect = document.getElementById("task-select");
+  const sharpnessSelect = document.getElementById("sharpness-select");
 
   const sliderContainer = document.getElementById("before-after-slider");
   const sliderBeforeImg = document.getElementById("slider-before-img");
@@ -213,13 +217,35 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (gray >= 252) satCount++;
       }
       const damagePct = ((darkCount + satCount) / total) * 100;
+      
+      // Compute high-frequency edge energy
+      let edgeEnergy = 0;
+      for (let y = 1; y < 127; y++) {
+        for (let x = 1; x < 127; x++) {
+          const idx = (y * 128 + x) * 4;
+          const left = (data[idx - 4] + data[idx - 3] + data[idx - 2]) / 3;
+          const right = (data[idx + 4] + data[idx + 5] + data[idx + 6]) / 3;
+          const top = (data[idx - 128 * 4] + data[idx - 128 * 4 + 1] + data[idx - 128 * 4 + 2]) / 3;
+          const bot = (data[idx + 128 * 4] + data[idx + 128 * 4 + 1] + data[idx + 128 * 4 + 2]) / 3;
+          const gx = right - left;
+          const gy = bot - top;
+          edgeEnergy += (gx * gx + gy * gy);
+        }
+      }
+      const avgEdge = edgeEnergy / (126 * 126);
+
       if (damagePct > 0.05) {
-        autoDetectDesc.textContent = `Auto-Detected: Sensor damage found (~${Math.round(damagePct * 10) / 10}% corrupted pixels). Inpainting and restoration ready.`;
+        autoDetectDesc.textContent = `Auto-Detected: Sensor damage found (~${Math.round(damagePct * 10) / 10}% corrupted pixels). Inpainting ready.`;
+      } else if (avgEdge < 125.0) {
+        autoDetectDesc.textContent = `Auto-Detected: Blurry sensor image (Low edge energy ${Math.round(avgEdge)}). Strong Deblur & Edge Sharpening pipeline activated.`;
+        if (taskSelect && taskSelect.value === "auto") {
+          taskSelect.style.borderColor = "var(--accent-cyan)";
+        }
       } else {
-        autoDetectDesc.textContent = "Auto-Detected: Sensor array intact. Thermal sensor denoising and enhancement ready.";
+        autoDetectDesc.textContent = `Auto-Detected: Clear thermal sensor image (Edge energy ${Math.round(avgEdge)}). Denoising & detail polish ready.`;
       }
     } catch (e) {
-      autoDetectDesc.textContent = "Auto-Detection Active: Ready to optimize thermal sensor defects and noise.";
+      autoDetectDesc.textContent = "Auto-Detection Active: Ready to eliminate blurriness and sensor noise.";
     }
   }
 
@@ -257,13 +283,16 @@ document.addEventListener("DOMContentLoaded", () => {
       chart.reset();
 
       const chosenColormap = colormapSelect ? colormapSelect.value : "grayscale";
+      const chosenTask = taskSelect ? taskSelect.value : "auto";
+      const chosenSharpness = sharpnessSelect ? sharpnessSelect.value : "strong";
       const options = {
-        task: "auto",
+        task: chosenTask,
         model: "unet",
         iterations: 1500,
         learning_rate: 0.01,
         colormap: chosenColormap,
-        simulate_damage: true,
+        sharpness_strength: chosenSharpness,
+        simulate_damage: false,
         auto_detect_mask: true,
       };
 
@@ -365,6 +394,22 @@ document.addEventListener("DOMContentLoaded", () => {
       statPsnr.textContent = psnrVal != null ? formatMetric(psnrVal, 2) + " dB" : "-- dB";
       statSsim.textContent = formatMetric(metrics.ssim, 4);
       statTime.textContent = formatSeconds(resData.runtime_seconds);
+
+      if (statSharpness) {
+        if (metrics.sharpness_gain_pct != null) {
+          statSharpness.textContent = (metrics.sharpness_gain_pct >= 0 ? "+" : "") + formatMetric(metrics.sharpness_gain_pct, 1) + "%";
+          statSharpness.style.color = metrics.sharpness_gain_pct >= 0 ? "var(--accent-cyan)" : "#ffb300";
+        } else {
+          statSharpness.textContent = "--";
+        }
+      }
+      if (statTenengrad) {
+        if (metrics.tenengrad_after != null) {
+          statTenengrad.textContent = formatMetric(metrics.tenengrad_after, 0);
+        } else {
+          statTenengrad.textContent = "--";
+        }
+      }
 
       if (resData.losses && resData.losses.length > 0) {
         chart.setFullData(resData.losses);

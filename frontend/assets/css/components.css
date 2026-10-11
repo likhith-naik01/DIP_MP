@@ -285,9 +285,9 @@
 
 .badge-left {
   left: 10px;
-  background: rgba(255, 23, 68, 0.25);
-  border: 1px solid rgba(255, 23, 68, 0.6);
-  color: #ff5252;
+  background: rgba(0, 229, 255, 0.2);
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  color: var(--accent-cyan);
 }
 
 .badge-right {
@@ -352,15 +352,15 @@
 }
 
 .sidebyside-header.header-degraded {
-  background: rgba(255, 23, 68, 0.18);
-  color: #ff5252;
-  border-bottom: 1px solid rgba(255, 23, 68, 0.35);
+  background: rgba(0, 229, 255, 0.14);
+  color: var(--accent-cyan);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.3);
 }
 
 .sidebyside-header.header-restored {
-  background: rgba(0, 229, 255, 0.18);
+  background: rgba(0, 229, 255, 0.2);
   color: var(--accent-cyan);
-  border-bottom: 1px solid rgba(0, 229, 255, 0.35);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.4);
 }
 
 .sidebyside-img {

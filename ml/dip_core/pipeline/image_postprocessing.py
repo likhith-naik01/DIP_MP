@@ -25,6 +25,36 @@ def composite_restored_image(
     return np.clip(composite, 0.0, 1.0).astype(np.float32)
 
 
+def enhance_sharpness_and_contrast(
+    image: np.ndarray,
+    strength: float = 1.3,
+    clahe_clip: float = 1.6,
+    threshold: float = 0.012
+) -> np.ndarray:
+    """
+    Post-processing edge sharpening and local contrast enhancement.
+    Eliminates neural network over-smoothing / blurriness and restores razor-sharp contours.
+    """
+    img = np.clip(image, 0.0, 1.0).astype(np.float32)
+    # 1. Unsharp mask with soft coring
+    blurred = cv2.GaussianBlur(img, (0, 0), sigmaX=1.1)
+    diff = img - blurred
+    cored_diff = np.sign(diff) * np.maximum(0.0, np.abs(diff) - threshold)
+    sharpened = img + (strength * cored_diff)
+    
+    # 2. Gentle CLAHE contrast boost
+    if clahe_clip > 0:
+        u8 = (np.clip(sharpened, 0.0, 1.0) * 255.0).astype(np.uint8)
+        clahe = cv2.createCLAHE(clipLimit=clahe_clip, tileGridSize=(8, 8))
+        contrast_boost = clahe.apply(u8).astype(np.float32) / 255.0
+        result = 0.75 * sharpened + 0.25 * contrast_boost
+    else:
+        result = sharpened
+        
+    return np.clip(result, 0.0, 1.0).astype(np.float32)
+
+
+
 def to_uint8(image: np.ndarray) -> np.ndarray:
     """Convert float32 image [0.0, 1.0] to uint8 [0, 255]."""
     return (np.clip(image, 0.0, 1.0) * 255.0).astype(np.uint8)

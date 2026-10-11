@@ -10,7 +10,7 @@ import torch.optim as optim
 
 from dip_core.config import DipTrainingConfig, get_device
 from dip_core.pipeline.noise_input import create_fixed_noise, perturb_noise
-from dip_core.pipeline.masked_loss import MaskedMSELoss
+from dip_core.pipeline.masked_loss import MaskedMSELoss, CompositeEdgeLoss
 from dip_core.pipeline.early_stopping import EarlyStopper
 from dip_core.metrics import calculate_psnr, calculate_ssim
 
@@ -86,7 +86,10 @@ class DipTrainer:
             lr=cfg.learning_rate,
             foreach=False,
         )
-        criterion = MaskedMSELoss()
+        if getattr(cfg, "loss_type", "composite_edge") == "composite_edge":
+            criterion = CompositeEdgeLoss().to(device)
+        else:
+            criterion = MaskedMSELoss().to(device)
         early_stopper = EarlyStopper(
             patience=cfg.early_stopping_patience,
             min_delta=cfg.early_stopping_min_delta,

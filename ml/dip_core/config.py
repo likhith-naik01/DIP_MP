@@ -11,6 +11,9 @@ class RestorationTask(str, Enum):
     AUTO = "auto"
     DENOISE = "denoise"
     INPAINT = "inpaint"
+    DEBLUR = "deblur"
+    SHARPEN = "sharpen"
+    DEBLURRING = "deblurring"
     DENOISE_AND_INPAINT = "denoise_and_inpaint"
     DENOISING = "denoising"
     INPAINTING = "inpainting"
@@ -29,6 +32,11 @@ class DipTrainingConfig:
     log_every: int = 50                # Logging and preview frequency
     save_every: int = 50               # Checkpoint/snapshot save frequency
     model_type: str = "unet"           # "unet" or "conv_baseline"
+    loss_type: str = "composite_edge"  # "composite_edge", "masked_mse", or "deblur"
+    deblur_strength: str = "strong"    # "normal", "strong", "ultra"
+    enable_sharpness_boost: bool = True
+    psf_kernel_size: int = 5
+    psf_sigma: float = 1.4
     early_stopping_enabled: bool = False
     early_stopping_patience: int = 250
     early_stopping_min_delta: float = 1e-5

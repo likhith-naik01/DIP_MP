@@ -15,7 +15,7 @@ def main():
     parser = argparse.ArgumentParser(description="Restore a single thermal image using Deep Image Prior.")
     parser.add_argument("--input", required=True, help="Path to input thermal image")
     parser.add_argument("--mask", default=None, help="Path to optional binary defect mask")
-    parser.add_argument("--task", default="denoise", choices=["denoise", "inpaint", "denoise_and_inpaint"])
+    parser.add_argument("--task", default="auto", choices=["auto", "deblur", "sharpen", "denoise", "inpaint", "denoise_and_inpaint"])
     parser.add_argument("--model", default="unet", choices=["unet", "conv_baseline"])
     parser.add_argument("--iterations", type=int, default=1500, help="Number of DIP iterations")
     parser.add_argument("--output-dir", default="output", help="Directory to save restoration artifacts")

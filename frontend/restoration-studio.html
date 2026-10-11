@@ -80,8 +80,32 @@
               </div>
             </div>
 
+            <!-- Restoration Mode Selection -->
+            <div style="margin-top: 1.1rem;">
+              <label class="form-label" for="task-select" style="font-size: 0.8rem; font-weight: 600;">Restoration Mode</label>
+              <select id="task-select" class="form-control" style="font-size: 0.85rem; padding: 0.5rem 0.75rem; border-color: rgba(0, 229, 255, 0.4);">
+                <option value="auto" selected>Auto-Detect &amp; Restore (Smart Deblur + Clean)</option>
+                <option value="deblur">Strong Deblur &amp; Sharpen (Eliminate Blurriness)</option>
+                <option value="denoise">Thermal Sensor Denoising &amp; Polish</option>
+                <option value="inpaint">Dead Pixel / Defect Inpainting</option>
+              </select>
+            </div>
+
+            <!-- Deblur & Sharpness Intensity -->
+            <div id="sharpness-control-group" style="margin-top: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <label class="form-label" for="sharpness-select" style="font-size: 0.8rem; font-weight: 600; margin: 0;">Sharpness &amp; Detail Boost</label>
+                <span style="font-size: 0.7rem; color: var(--accent-cyan); font-weight: 600;">High-Frequency Engine</span>
+              </div>
+              <select id="sharpness-select" class="form-control" style="font-size: 0.85rem; padding: 0.5rem 0.75rem;">
+                <option value="strong" selected>Strong Deblur &amp; Edge Restoration (Recommended)</option>
+                <option value="ultra">Ultra Crisp (Maximum High-Frequency Recovery)</option>
+                <option value="normal">Balanced Sharpness</option>
+              </select>
+            </div>
+
             <!-- Colormap Palette Selection -->
-            <div style="margin-top: 1.25rem;">
+            <div style="margin-top: 1rem;">
               <label class="form-label" for="colormap-select" style="font-size: 0.8rem;">Display Palette</label>
               <select id="colormap-select" class="form-control" style="font-size: 0.85rem; padding: 0.5rem 0.75rem;">
                 <option value="grayscale" selected>Grayscale (Monochrome Thermal)</option>
@@ -149,11 +173,11 @@
             <!-- Viewport 1: Spacious 2-Image View (Default) -->
             <div id="view-sidebyside" class="sidebyside-container" style="display: grid; margin-bottom: 1.5rem;">
               <div class="sidebyside-box">
-                <div class="sidebyside-header header-degraded">Degraded Input (Noise / Scratches)</div>
-                <img id="sbs-before-img" class="sidebyside-img" src="" alt="Degraded Thermal Input">
+                <div class="sidebyside-header header-degraded">Input Image</div>
+                <img id="sbs-before-img" class="sidebyside-img" src="" alt="Input Image">
               </div>
               <div class="sidebyside-box">
-                <div class="sidebyside-header header-restored">DIP Restored Output (Clean Recovered)</div>
+                <div class="sidebyside-header header-restored">DIP Restored Output</div>
                 <img id="sbs-after-img" class="sidebyside-img" src="" alt="Restored DIP Output">
               </div>
             </div>
@@ -165,8 +189,8 @@
                 <img id="tri-orig-img" class="sidebyside-img" src="" alt="Original Reference">
               </div>
               <div class="sidebyside-box">
-                <div class="sidebyside-header header-degraded">2. Degraded Thermal Input</div>
-                <img id="tri-deg-img" class="sidebyside-img" src="" alt="Degraded Input">
+                <div class="sidebyside-header header-degraded">2. Input Image</div>
+                <img id="tri-deg-img" class="sidebyside-img" src="" alt="Input Image">
               </div>
               <div class="sidebyside-box">
                 <div class="sidebyside-header header-restored">3. DIP Restored Output</div>
@@ -177,9 +201,9 @@
             <!-- Viewport 3: Draggable Split Slider View -->
             <div id="view-slider" style="display: none; margin-bottom: 1.5rem;">
               <div class="slider-container" id="before-after-slider">
-                <div class="slider-badge badge-left">Degraded Input</div>
+                <div class="slider-badge badge-left">Input Image</div>
                 <div class="slider-badge badge-right">DIP Restored</div>
-                <img id="slider-before-img" class="slider-img slider-img-before" src="" alt="Degraded Thermal">
+                <img id="slider-before-img" class="slider-img slider-img-before" src="" alt="Input Image">
                 <img id="slider-after-img" class="slider-img slider-img-after" src="" alt="Restored Thermal">
                 <div class="slider-handle">
                   <div class="slider-button"></div>
@@ -206,6 +230,10 @@
               <h2 class="card-title">Restoration Metrics</h2>
               <div class="metrics-grid">
                 <div class="stat-card">
+                  <div class="stat-value" id="stat-sharpness" style="color: var(--accent-cyan);">--</div>
+                  <div class="stat-label">Sharpness Boost</div>
+                </div>
+                <div class="stat-card">
                   <div class="stat-value" id="stat-psnr">-- dB</div>
                   <div class="stat-label">Peak SNR</div>
                 </div>
@@ -216,6 +244,10 @@
                 <div class="stat-card">
                   <div class="stat-value" id="stat-loss">--</div>
                   <div class="stat-label">Final Loss</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="stat-tenengrad">--</div>
+                  <div class="stat-label">Edge Gradient</div>
                 </div>
                 <div class="stat-card">
                   <div class="stat-value" id="stat-time">-- s</div>

@@ -20,7 +20,12 @@ from dip_core.pipeline.image_preprocessing import (
 from dip_core.pipeline.damage_simulation import simulate_damage
 from dip_core.pipeline.mask_detection import detect_damage_mask
 from dip_core.pipeline.dip_trainer import DipTrainer
-from dip_core.pipeline.image_postprocessing import composite_restored_image
+from dip_core.pipeline.image_postprocessing import composite_restored_image, enhance_sharpness_and_contrast
+from dip_core.pipeline.deblurring import (
+    compute_sharpness_metrics,
+    strong_deblur_pipeline,
+    multi_scale_detail_recovery,
+)
 from dip_core.metrics import calculate_psnr, calculate_ssim, calculate_masked_psnr
 from dip_core.baselines import evaluate_baselines
 
@@ -120,24 +125,36 @@ def run_restoration(
         clean_ref = load_image(reference_image, grayscale=True)
 
     # 2. Damage simulation (if requested for benchmarking clean thermal images)
+    # 2. Damage simulation or degradation analysis
     if simulate_damage_flag:
         clean_ref = raw_img.copy()
         degraded_img, sim_mask, _ = simulate_damage(clean_ref, damage_config)
         mask_np = sim_mask
     else:
         degraded_img = raw_img.copy()
+
+    # Initial sharpness measurement
+    initial_sharpness = compute_sharpness_metrics(degraded_img)
+
+    if not simulate_damage_flag:
         if task == "auto" or auto_detect_mask:
             det_mask, stats = detect_damage_mask(degraded_img)
             if mask is not None:
                 mask_tensor_tmp = build_valid_mask(mask, target_shape=orig_shape, task="inpaint", device="cpu")
                 mask_np = mask_tensor_tmp.squeeze().numpy()
                 task = "inpaint"
-            elif stats.get("damaged_pixels", 0) > 0:
+            elif stats.get("damaged_pixels", 0) > 20:
                 mask_np = det_mask
                 task = "inpaint"
+            elif initial_sharpness["is_blurry"]:
+                mask_np = np.ones(orig_shape, dtype=np.float32)
+                task = "deblur"
             else:
                 mask_np = np.ones(orig_shape, dtype=np.float32)
                 task = "denoise"
+        elif task in ("deblur", "deblurring", "sharpen"):
+            mask_np = np.ones(orig_shape, dtype=np.float32)
+            task = "deblur"
         elif mask is not None:
             # Build valid mask from user input
             mask_tensor_tmp = build_valid_mask(mask, target_shape=orig_shape, task=task, device="cpu")
@@ -145,8 +162,15 @@ def run_restoration(
         else:
             mask_np = np.ones(orig_shape, dtype=np.float32)
 
-    # 3. Convert to torch tensors and pad to multiple of 32
-    deg_t = to_tensor(degraded_img, device=dev)
+    # 3. Physics-informed Deblurring Prior Generation
+    deblur_prior = None
+    if task in ("deblur", "deblurring", "sharpen") or (task in ("auto", "denoise") and initial_sharpness["is_blurry"]):
+        strength_setting = getattr(training_config, "deblur_strength", "strong") if training_config else "strong"
+        deblur_prior, _ = strong_deblur_pipeline(degraded_img, strength=strength_setting)
+
+    # 4. Convert to torch tensors and pad to multiple of 32
+    target_train_img = deblur_prior if (deblur_prior is not None and task == "deblur") else degraded_img
+    deg_t = to_tensor(target_train_img, device=dev)
     deg_padded, orig_size = pad_to_multiple_of_32(deg_t)
 
     mask_t = to_tensor(mask_np, device=dev)
@@ -157,19 +181,23 @@ def run_restoration(
         ref_t = to_tensor(clean_ref, device=dev)
         ref_padded, _ = pad_to_multiple_of_32(ref_t)
 
-    # 4. Instantiate Generator Architecture
+    # 5. Instantiate Generator Architecture
     if model_name == "conv_baseline":
         model = ConvBaselineGenerator(in_channels=32, out_channels=1)
     else:
         model = UNetGenerator(in_channels=32, out_channels=1, skip_channels=4)
 
-    # 5. Training loop configuration
+    # 6. Training loop configuration
     cfg = DipTrainingConfig(
         iterations=iterations,
         learning_rate=learning_rate,
         reg_noise_std=reg_noise_std,
         device=str(dev),
+        loss_type="composite_edge",
     )
+    if training_config is not None:
+        cfg.loss_type = getattr(training_config, "loss_type", "composite_edge")
+        cfg.deblur_strength = getattr(training_config, "deblur_strength", "strong")
 
     trainer = DipTrainer(config=cfg)
 
@@ -183,7 +211,7 @@ def run_restoration(
         elif progress_callback:
             progress_callback(it, total, loss, None)
 
-    # 6. Execute DIP optimization
+    # 7. Execute DIP optimization
     train_result = trainer.train(
         degraded_tensor=deg_padded,
         mask_tensor=mask_padded,
@@ -198,10 +226,25 @@ def run_restoration(
     res_t = torch.from_numpy(train_result.restored_image).unsqueeze(0).unsqueeze(0)
     restored_raw = crop_back_to_original_size(res_t, orig_size).squeeze().numpy()
 
-    # Create composited blend: mask * degraded + (1 - mask) * restored
-    restored_composited = composite_restored_image(degraded_img, restored_raw, mask_np)
+    # 8. Adaptive Convergence Detail Fusion & Post-Processing
+    final_loss_val = train_result.loss_history[-1] if train_result.loss_history else 0.05
+    if deblur_prior is not None:
+        # If UNet reached deep convergence (<0.005 loss), blend its regularized structure.
+        # If under-converged (e.g. CPU fast run), lean primarily on the sharp deblur prior.
+        dip_weight = float(np.clip((0.005 - final_loss_val) / 0.005, 0.0, 0.4))
+        fused = (1.0 - dip_weight) * deblur_prior + dip_weight * restored_raw
+        restored_raw = np.clip(fused, 0.0, 1.0).astype(np.float32)
+    elif task == "denoise" or np.all(mask_np >= 0.999):
+        # Eliminate DIP over-smoothing for denoising
+        restored_raw = enhance_sharpness_and_contrast(restored_raw, strength=1.1, clahe_clip=1.3)
 
-    # 7. Evaluate Classical Baselines
+    # Blend with original valid pixels if inpainting
+    if task in ("denoise", "deblur", "sharpen") or np.all(mask_np >= 0.999):
+        restored_composited = restored_raw
+    else:
+        restored_composited = composite_restored_image(degraded_img, restored_raw, mask_np)
+
+    # 9. Evaluate Classical Baselines
     baseline_eval = evaluate_baselines(
         degraded=degraded_img,
         mask=mask_np,
@@ -209,13 +252,25 @@ def run_restoration(
         task=task,
     )
 
-    # 8. Compute final metrics
+    # 10. Compute final metrics
+    final_sharpness = compute_sharpness_metrics(restored_composited)
+    orig_lap = max(initial_sharpness["laplacian_variance"], 1e-4)
+    orig_ten = max(initial_sharpness["tenengrad_energy"], 1e-4)
+
     metrics: Dict[str, Any] = {
         "final_loss": train_result.loss_history[-1] if train_result.loss_history else 0.0,
         "best_iteration": train_result.best_iteration,
         "total_iterations": len(train_result.loss_history),
         "duration_seconds": train_result.duration_seconds,
         "stopped_early": train_result.stopped_early,
+        "sharpness_before": initial_sharpness["laplacian_variance"],
+        "sharpness_after": final_sharpness["laplacian_variance"],
+        "sharpness_gain_pct": round(((final_sharpness["laplacian_variance"] / orig_lap) - 1.0) * 100.0, 1),
+        "tenengrad_before": initial_sharpness["tenengrad_energy"],
+        "tenengrad_after": final_sharpness["tenengrad_energy"],
+        "tenengrad_gain_pct": round(((final_sharpness["tenengrad_energy"] / orig_ten) - 1.0) * 100.0, 1),
+        "is_blurry_before": initial_sharpness["is_blurry"],
+        "is_blurry_after": final_sharpness["is_blurry"],
     }
 
     if clean_ref is not None:

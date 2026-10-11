@@ -48,6 +48,14 @@ def apply_inpaint_baseline(
     return (inpainted.astype(np.float32) / 255.0)
 
 
+def apply_unsharp_filter(image: np.ndarray, strength: float = 1.3) -> np.ndarray:
+    """Classical Unsharp Masking filter."""
+    img_u8 = (np.clip(image, 0.0, 1.0) * 255.0).astype(np.uint8)
+    blurred = cv2.GaussianBlur(img_u8, (0, 0), sigmaX=1.2)
+    sharpened = cv2.addWeighted(img_u8, 1.0 + strength, blurred, -strength, 0)
+    return (sharpened.astype(np.float32) / 255.0)
+
+
 def evaluate_baselines(
     degraded: np.ndarray,
     mask: Optional[np.ndarray] = None,
@@ -55,7 +63,7 @@ def evaluate_baselines(
     task: str = "denoise",
 ) -> Dict[str, Dict[str, Any]]:
     """
-    Run mean 3x3, mean 7x7, median 3x3, gaussian filter, and OpenCV inpaint.
+    Run mean 3x3, mean 7x7, median 3x3, gaussian filter, unsharp mask, and OpenCV inpaint.
     Computes PSNR and SSIM against clean reference if provided.
     """
     results: Dict[str, Dict[str, Any]] = {}
@@ -64,12 +72,14 @@ def evaluate_baselines(
     mean_7 = apply_mean_filter(degraded, ksize=7)
     med_3 = apply_median_filter(degraded, ksize=3)
     gauss = apply_gaussian_filter(degraded, ksize=5, sigma=1.2)
+    unsharp = apply_unsharp_filter(degraded, strength=1.2)
 
     filters = [
         ("mean_3x3", mean_3),
         ("mean_7x7", mean_7),
         ("median", med_3),
         ("gaussian", gauss),
+        ("unsharp_mask", unsharp),
     ]
 
     for name, img in filters:

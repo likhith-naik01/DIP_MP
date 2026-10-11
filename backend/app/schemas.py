@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 
 class RestorationTaskEnum(str, Enum):
     AUTO = "auto"
+    DEBLUR = "deblur"
+    SHARPEN = "sharpen"
     INPAINTING = "inpainting"
     DENOISING = "denoising"
     SUPER_RESOLUTION = "super_resolution"
@@ -36,6 +38,7 @@ class RestorationRequestOptions(BaseModel):
     learning_rate: float = Field(default=0.01, gt=0.0, le=0.1)
     reg_noise_std: float = Field(default=0.03, ge=0.0, le=0.5)
     colormap: ColormapEnum = ColormapEnum.IRONBOW
+    sharpness_strength: Optional[str] = "strong"
     auto_detect_mask: bool = True
     simulate_damage: bool = False
     early_stopping: bool = True

@@ -237,12 +237,50 @@ Then open `http://localhost:3000` in any modern web browser.
 
 ---
 
-## Testing & Verification
+## Deployment Options
 
-
-Run the test suite:
+### 1. Unified 1-Click Server (Backend + Web Studio)
+To run both the API backend and the interactive Web Studio on a single port:
 ```bash
-pytest ml/tests -v
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+```
+Open your browser to `http://localhost:8000` to access the full application.
+
+### 2. Docker Container Deployment
+Build and run the containerized application:
+```bash
+# Build Docker image
+docker build -t thermal-dip -f backend/Dockerfile .
+
+# Run container (CPU or GPU)
+docker run -p 8000:8000 thermal-dip
 ```
 
-All 5 test suites cover tensor dimensions across all 5 levels, mathematical correctness of the masked loss, recall of mask auto-detection, damage reproducibility, and end-to-end smoke execution.
+### 3. Cloud Platforms (Render, Railway, Hugging Face Docker, Fly.io)
+- **Build Command**:
+  ```bash
+  pip install -r backend/requirements.txt && pip install -e ml/
+  ```
+- **Start Command**:
+  ```bash
+  uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+  ```
+- **Port**: Set to platform default or `8000`.
+
+### 4. Google Colab GPU Accelerated Server
+For instant zero-cost NVIDIA Tesla T4 acceleration:
+1. Open [`03_Colab_Launch_Backend_Server.ipynb`](file:///d:/likhith/OneDrive/Desktop/MP/DIP/03_Colab_Launch_Backend_Server.ipynb) in Google Colab.
+2. Select **Runtime > Change runtime type > T4 GPU**.
+3. Click **Runtime > Run All**.
+4. Copy the public tunnel URL (e.g. `https://xyz.trycloudflare.com`) and paste it into **API Settings** in the Web Studio.
+
+---
+
+## Testing & Verification
+
+Run the comprehensive unit test suite:
+```bash
+python -m unittest discover -s ml/tests -v
+```
+
+All 19 test suites cover tensor dimensions across all 5 U-Net levels, mathematical correctness of masked loss, auto-detection recall, damage reproducibility, physics-informed deblurring, sharpness metric gain verification, and end-to-end pipeline smoke execution.

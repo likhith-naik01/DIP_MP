@@ -42,10 +42,11 @@ def execute_restoration_job(
             lr = float(options.get("learning_rate", 0.01))
             reg_noise_std = float(options.get("reg_noise_std", 0.03))
             colormap_str = options.get("colormap", "ironbow")
-            simulate_damage_flag = bool(options.get("simulate_damage", True))
+            simulate_damage_flag = bool(options.get("simulate_damage", False))
             auto_detect_mask_flag = bool(options.get("auto_detect_mask", True))
             early_stopping_flag = bool(options.get("early_stopping", True))
             patience = int(options.get("patience", 250))
+            sharpness_strength = str(options.get("sharpness_strength", "strong"))
             
             # Accelerate local CPU execution so it finishes in ~15s rather than taking 15 minutes
             if DEVICE == "cpu":
@@ -55,24 +56,35 @@ def execute_restoration_job(
             ground_truth_arr = image_arr.copy()
             degraded_arr = image_arr.copy()
             
-            # Step 1: Automatic defect detection or prominent damage synthesis for clear restoration contrast
-            if mask_arr is None:
+            # User restoration: Do NOT inject black boxes or artificial damage onto user images!
+            if mask_arr is not None:
+                task_str = "inpaint"
+            elif simulate_damage_flag:
+                dmg_cfg = DamageConfig(
+                    dead_pixel_ratio=0.015,
+                    num_rect_holes=0, # Never add black rectangular boxes
+                    num_line_holes=0, # Never add black scratch lines
+                    seed=42
+                )
+                degraded_arr, sim_mask = simulate_thermal_damage(ground_truth_arr, dmg_cfg)
+                mask_arr = sim_mask
+                task_str = "inpaint"
+            elif task_str in ("deblur", "deblurring", "sharpen"):
+                mask_arr = np.ones_like(degraded_arr, dtype=np.float32)
+            else:
+                # Direct restoration on uploaded image: check for dead pixels & blurriness
+                from dip_core.pipeline.deblurring import compute_sharpness_metrics
+                sharpness_info = compute_sharpness_metrics(degraded_arr)
                 valid_mask, stats = detect_damage_mask(degraded_arr)
-                if stats.get("damaged_pixels", 0) > 20 and not simulate_damage_flag:
+                if auto_detect_mask_flag and stats.get("damaged_pixels", 0) > 20:
                     mask_arr = valid_mask
                     task_str = "inpaint"
+                elif sharpness_info["is_blurry"]:
+                    mask_arr = np.ones_like(degraded_arr, dtype=np.float32)
+                    task_str = "deblur"
                 else:
-                    # Prominent sensor defects (dead pixels + streak scratch lines) so restoration is unmistakably clear
-                    dmg_cfg = DamageConfig(
-                        dead_pixel_ratio=0.02,
-                        scratch_line_count=3,
-                        scratch_line_thickness=2,
-                        seed=42
-                    )
-                    degraded_arr, sim_mask = simulate_thermal_damage(ground_truth_arr, dmg_cfg)
-                    mask_arr = sim_mask
-                    simulate_damage_flag = True
-                    task_str = "inpaint"
+                    mask_arr = np.ones_like(degraded_arr, dtype=np.float32)
+                    task_str = "denoise"
                 
             if mask_arr is None:
                 mask_arr = np.ones_like(degraded_arr, dtype=np.float32)
@@ -119,6 +131,8 @@ def execute_restoration_job(
                 iterations=total_iters,
                 learning_rate=lr,
                 reg_noise_std=reg_noise_std,
+                loss_type="composite_edge",
+                deblur_strength=sharpness_strength,
                 save_every=50,
                 log_every=50,
                 early_stopping_patience=patience,
@@ -129,7 +143,9 @@ def execute_restoration_job(
             start_time = time.time()
             
             # Map task string to enum
-            if task_str in ("inpainting", "inpaint"):
+            if task_str in ("deblur", "deblurring", "sharpen"):
+                task_enum = RestorationTask.DEBLUR
+            elif task_str in ("inpainting", "inpaint"):
                 task_enum = RestorationTask.INPAINT
             elif task_str in ("denoising", "denoise"):
                 task_enum = RestorationTask.DENOISE
