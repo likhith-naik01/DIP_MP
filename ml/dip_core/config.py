@@ -22,12 +22,49 @@ class DipTrainingConfig:
     reg_noise_std: float = 1.0 / 30.0  # Gaussian jitter added to z each iteration
     noise_std: float = 0.1             # Initial noise tensor standard deviation
     log_every: int = 50                # Logging and preview frequency
+    save_every: int = 50               # Checkpoint/snapshot save frequency
+    model_type: str = "unet"           # "unet" or "conv_baseline"
     early_stopping_enabled: bool = False
     early_stopping_patience: int = 250
     early_stopping_min_delta: float = 1e-5
     smoothing_window: int = 20
     seed: int = 42
+    out_channels: int = 1              # Output image channels
+    skip_channels: int = 4             # 1x1 skip connection channels
+    weight_decay: float = 0.0          # Adam optimizer weight decay
+    run_baselines: bool = True         # Whether to compute classical baselines
     device: Optional[str] = None       # "cuda", "cpu", or None for auto-detect
+    input_channels: Optional[int] = None
+    log_interval: Optional[int] = None
+    early_stopping: Optional[bool] = None
+    patience: Optional[int] = None
+    min_delta: Optional[float] = None
+
+    def __post_init__(self):
+        if self.input_channels is not None:
+            self.noise_channels = self.input_channels
+        else:
+            self.input_channels = self.noise_channels
+        if self.log_interval is not None:
+            self.log_every = self.log_interval
+        else:
+            self.log_interval = self.log_every
+        if self.early_stopping is not None:
+            self.early_stopping_enabled = self.early_stopping
+        else:
+            self.early_stopping = self.early_stopping_enabled
+        if self.patience is not None:
+            self.early_stopping_patience = self.patience
+        else:
+            self.patience = self.early_stopping_patience
+        if self.min_delta is not None:
+            self.early_stopping_min_delta = self.min_delta
+        else:
+            self.min_delta = self.early_stopping_min_delta
+
+
+# Backward-compatibility alias
+DIPConfig = DipTrainingConfig
 
 
 @dataclass

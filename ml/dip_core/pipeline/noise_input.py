@@ -8,18 +8,20 @@ from dip_core.config import get_device
 def create_fixed_noise(
     spatial_shape: Tuple[int, int],
     channels: int = 32,
+    std: float = 0.1,
     seed: int = 42,
     device: Optional[Union[str, torch.device]] = None,
+    **kwargs
 ) -> torch.Tensor:
     """
-    Generate the fixed input noise tensor z ~ N(0, I).
+    Generate the fixed input noise tensor z ~ N(0, std^2 * I).
     Shape: (1, channels, H, W).
     """
     dev = get_device(device if isinstance(device, str) else None) if (device is None or isinstance(device, str)) else device
     g = torch.Generator(device="cpu")
     g.manual_seed(seed)
     h, w = spatial_shape
-    noise = torch.randn((1, channels, h, w), generator=g, dtype=torch.float32)
+    noise = torch.randn((1, channels, h, w), generator=g, dtype=torch.float32) * std
     return noise.to(dev)
 
 

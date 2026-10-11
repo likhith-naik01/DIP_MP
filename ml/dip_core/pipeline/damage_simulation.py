@@ -75,3 +75,36 @@ def simulate_damage(
     damaged = damaged * mask
 
     return damaged.astype(np.float32), mask.astype(np.float32), clean
+
+
+def simulate_thermal_damage(
+    image: np.ndarray,
+    config: Optional[DamageConfig] = None
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Convenience wrapper returning (damaged_image, mask)."""
+    damaged, mask, _ = simulate_damage(image, config)
+    return damaged, mask
+
+
+def add_gaussian_noise(image: np.ndarray, snr_db: float = 20.0, seed: int = 42) -> np.ndarray:
+    cfg = DamageConfig(gaussian_snr_db=snr_db, dropout_ratio=0.0, num_rect_holes=0, num_line_holes=0, seed=seed)
+    damaged, _, _ = simulate_damage(image, cfg)
+    return damaged
+
+
+def add_dead_pixels(image: np.ndarray, ratio: float = 0.02, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
+    cfg = DamageConfig(gaussian_snr_db=None, gaussian_noise_std=0.0, dropout_ratio=ratio, num_rect_holes=0, num_line_holes=0, seed=seed)
+    damaged, mask, _ = simulate_damage(image, cfg)
+    return damaged, mask
+
+
+def add_rectangular_holes(image: np.ndarray, count: int = 2, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
+    cfg = DamageConfig(gaussian_snr_db=None, gaussian_noise_std=0.0, dropout_ratio=0.0, num_rect_holes=count, num_line_holes=0, seed=seed)
+    damaged, mask, _ = simulate_damage(image, cfg)
+    return damaged, mask
+
+
+def add_scratch_lines(image: np.ndarray, count: int = 2, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
+    cfg = DamageConfig(gaussian_snr_db=None, gaussian_noise_std=0.0, dropout_ratio=0.0, num_rect_holes=0, num_line_holes=count, seed=seed)
+    damaged, mask, _ = simulate_damage(image, cfg)
+    return damaged, mask

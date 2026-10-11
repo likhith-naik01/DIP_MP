@@ -27,6 +27,18 @@ def to_uint8(image: np.ndarray) -> np.ndarray:
     return (np.clip(image, 0.0, 1.0) * 255.0).astype(np.uint8)
 
 
+def tensor_to_numpy(tensor, orig_size: Optional[Tuple[int, int]] = None) -> np.ndarray:
+    """Convert torch.Tensor (1, 1, H, W) or (H, W) to 2D numpy array [0.0, 1.0]."""
+    if hasattr(tensor, "detach"):
+        arr = tensor.detach().cpu().squeeze().numpy()
+    else:
+        arr = np.asarray(tensor)
+    if orig_size is not None and len(orig_size) == 2 and arr.ndim >= 2:
+        h, w = orig_size
+        arr = arr[:h, :w]
+    return np.clip(arr, 0.0, 1.0).astype(np.float32)
+
+
 def apply_thermal_colormap(image: np.ndarray, colormap: str = "ironbow") -> np.ndarray:
     """
     Convert 1-channel thermal array to 3-channel RGB pseudo-color:

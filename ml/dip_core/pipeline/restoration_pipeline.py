@@ -45,9 +45,21 @@ class RestorationOutput:
     stopped_early: bool = False
     cancelled: bool = False
 
+    @property
+    def restored_array(self) -> np.ndarray:
+        return self.restored_composited
+
+    @property
+    def losses(self) -> List[float]:
+        return self.loss_history
+
+    @property
+    def runtime_seconds(self) -> float:
+        return self.duration_seconds
+
 
 def run_restoration(
-    image: Union[str, Path, bytes, np.ndarray],
+    image: Optional[Union[str, Path, bytes, np.ndarray]] = None,
     mask: Optional[Union[str, Path, bytes, np.ndarray]] = None,
     task: str = "denoise",
     model_name: str = "unet",
@@ -61,10 +73,41 @@ def run_restoration(
     progress_callback: Optional[Callable[[int, int, float, Optional[np.ndarray]], None]] = None,
     cancel_event: Optional[threading.Event] = None,
     device: Optional[str] = None,
+    # Backward compatible kwargs
+    image_input: Optional[Union[str, Path, bytes, np.ndarray]] = None,
+    mask_input: Optional[Union[str, Path, bytes, np.ndarray]] = None,
+    training_config: Optional[DipTrainingConfig] = None,
+    ground_truth: Optional[Union[str, Path, bytes, np.ndarray]] = None,
+    step_callback: Optional[Callable] = None,
+    **kwargs
 ) -> RestorationOutput:
     """
     Unified entry point executing full thermal restoration and comparative evaluation.
     """
+    if image is None and image_input is not None:
+        image = image_input
+    if mask is None and mask_input is not None:
+        mask = mask_input
+    if reference_image is None and ground_truth is not None:
+        reference_image = ground_truth
+
+    if training_config is not None:
+        iterations = training_config.iterations
+        learning_rate = training_config.learning_rate
+        reg_noise_std = training_config.reg_noise_std
+        if training_config.device is not None:
+            device = training_config.device
+
+    if step_callback is not None and progress_callback is None:
+        def bridged_cb(it, total, loss, prev):
+            step_callback(it, loss, prev)
+        progress_callback = bridged_cb
+
+    if hasattr(task, "value"):
+        task = task.value
+    if task == "inpaint":
+        task = "inpaint"
+
     dev = get_device(device)
 
     # 1. Load input image

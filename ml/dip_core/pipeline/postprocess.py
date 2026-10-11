@@ -5,6 +5,13 @@ from dip_core.pipeline.image_postprocessing import (
     apply_thermal_colormap,
     save_image,
     to_uint8,
+    tensor_to_numpy,
 )
 
-__all__ = ["composite_restored_image", "apply_thermal_colormap", "save_image", "to_uint8"]
+__all__ = [
+    "composite_restored_image",
+    "apply_thermal_colormap",
+    "save_image",
+    "to_uint8",
+    "tensor_to_numpy",
+]

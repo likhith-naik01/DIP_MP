@@ -89,3 +89,43 @@ def detect_damage_mask(
     }
 
     return valid_mask, stats
+
+
+def detect_dead_pixels(image: np.ndarray, dead_val: float = 0.01) -> np.ndarray:
+    """Return binary mask: 1.0 for dead pixels (<= dead_val), 0.0 for others."""
+    img = np.clip(image, 0.0, 1.0).astype(np.float32)
+    return (img <= dead_val).astype(np.float32)
+
+
+def detect_saturation(image: np.ndarray, sat_val: float = 0.99) -> np.ndarray:
+    """Return binary mask: 1.0 for saturated pixels (>= sat_val), 0.0 for others."""
+    img = np.clip(image, 0.0, 1.0).astype(np.float32)
+    return (img >= sat_val).astype(np.float32)
+
+
+def detect_scratch_lines(image: np.ndarray, length_threshold: int = 15) -> np.ndarray:
+    """Return binary mask: 1.0 for scratch line defects, 0.0 for others."""
+    img = np.clip(image, 0.0, 1.0).astype(np.float32)
+    h, w = img.shape[:2]
+    u8_img = (img * 255.0).astype(np.uint8)
+    inv_u8 = 255 - u8_img
+    scratch_mask = np.zeros((h, w), dtype=bool)
+    
+    k_len = max(3, length_threshold)
+    k_h = np.zeros((k_len, k_len), dtype=np.uint8)
+    k_h[k_len // 2, :] = 1
+    opened_h = cv2.morphologyEx(inv_u8, cv2.MORPH_OPEN, k_h)
+    scratch_mask |= (opened_h > 80)
+
+    k_v = np.zeros((k_len, k_len), dtype=np.uint8)
+    k_v[:, k_len // 2] = 1
+    opened_v = cv2.morphologyEx(inv_u8, cv2.MORPH_OPEN, k_v)
+    scratch_mask |= (opened_v > 80)
+
+    return scratch_mask.astype(np.float32)
+
+
+def auto_detect_damage_mask(image: np.ndarray) -> np.ndarray:
+    """Return binary damage mask: 1.0 where damaged, 0.0 where valid."""
+    valid_mask, _ = detect_damage_mask(image)
+    return (valid_mask < 0.5).astype(np.float32)
